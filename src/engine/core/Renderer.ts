@@ -29,7 +29,7 @@ export class Renderer {
     });
     this.instance.outputColorSpace = SRGBColorSpace;
     this.instance.toneMapping = ACESFilmicToneMapping;
-    this.instance.toneMappingExposure = 0.9;
+    this.instance.toneMappingExposure = 1.55;
     this.instance.setClearAlpha(options.clearAlpha ?? 1);
     this.instance.shadowMap.type = PCFShadowMap;
     this.instance.domElement.tabIndex = 0;

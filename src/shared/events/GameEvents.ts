@@ -45,7 +45,11 @@ export interface DoorSelectedEvent {
 export interface InteractionHintEvent {
   readonly visible: boolean;
   readonly messageKey: string | null;
-  readonly objectName: DoorObjectName | null;
+  readonly objectName: string | null;
+}
+
+export interface InteractiveDoorOpenedEvent {
+  readonly objectName: string;
 }
 
 export interface PointerLockEvent {
@@ -92,6 +96,7 @@ export interface GameEventMap {
 
   'interaction:door-selected': DoorSelectedEvent;
   'interaction:door-opened': DoorSelectedEvent;
+  'interaction:interactive-door-opened': InteractiveDoorOpenedEvent;
   'interaction:hint': InteractionHintEvent;
 
   'round:started': RoundStartedEvent;

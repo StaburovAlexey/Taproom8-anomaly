@@ -8,6 +8,7 @@ export {
   type GameEventMap,
   type GraphicsQuality,
   type InteractionHintEvent,
+  type InteractiveDoorOpenedEvent,
   type LevelSource,
   type LoadingProgressEvent,
   type MovementEvent,
