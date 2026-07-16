@@ -40,6 +40,7 @@ export interface DoorSelectedEvent {
   readonly answer: boolean;
   readonly doorId: DoorId;
   readonly objectName: DoorObjectName;
+  readonly position?: Vector3Value;
 }
 
 export interface InteractionHintEvent {
@@ -50,6 +51,7 @@ export interface InteractionHintEvent {
 
 export interface InteractiveDoorOpenedEvent {
   readonly objectName: string;
+  readonly position?: Vector3Value;
 }
 
 export interface PointerLockEvent {
@@ -74,13 +76,19 @@ export interface RoundResolvedEvent {
 
 export interface GameEventMap {
   'ui:unlock-audio': void;
-  'ui:start-game': void;
-  'ui:return-menu': void;
+  'ui:button-pressed': void;
   'ui:graphics-changed': { readonly quality: GraphicsQuality };
+  'ui:volume-changed': { readonly master: number };
   'ui:mobile-move': Vector2Value;
   'ui:mobile-look': Vector2Value;
   'ui:mobile-interact': void;
-  'ui:request-pointer-lock': void;
+
+  'game:run-requested': void;
+  'game:pause-requested': void;
+  'session:start-requested': void;
+  'session:abandon-requested': void;
+  'round:advance-requested': void;
+  'gameplay:input-changed': { readonly enabled: boolean };
 
   'loading:progress': LoadingProgressEvent;
   'engine:ready': EngineReadyEvent;
@@ -88,6 +96,9 @@ export interface GameEventMap {
   'level:loaded': {
     readonly source: LevelSource;
     readonly url: string;
+  };
+  'audio:speaker-sources-changed': {
+    readonly positions: readonly Vector3Value[];
   };
 
   'player:movement-started': MovementEvent;

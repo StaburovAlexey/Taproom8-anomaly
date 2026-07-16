@@ -56,7 +56,7 @@ export class Game {
       this.update(deltaSeconds, elapsedSeconds);
     });
     this.unsubscribers = [
-      this.eventBus.on('ui:start-game', () => {
+      this.eventBus.on('game:run-requested', () => {
         const requestPointerLock = this.ready
           && window.matchMedia('(pointer: fine)').matches;
         void this.start();
@@ -64,14 +64,12 @@ export class Game {
           void this.gameScene?.requestPointerLock();
         }
       }),
-      this.eventBus.on('ui:return-menu', () => this.pause()),
+      this.eventBus.on('game:pause-requested', () => this.pause()),
+      this.eventBus.on('gameplay:input-changed', ({ enabled }) => {
+        this.gameScene?.setInputEnabled(enabled);
+      }),
       this.eventBus.on('ui:graphics-changed', ({ quality }) => {
         this.renderer.setQuality(quality);
-      }),
-      this.eventBus.on('ui:request-pointer-lock', () => {
-        if (this.currentState === 'running') {
-          void this.gameScene?.requestPointerLock();
-        }
       }),
     ];
 
@@ -139,13 +137,6 @@ export class Game {
     this.gameScene?.stop();
     this.loop.stop();
     this.currentState = 'paused';
-  }
-
-  public requestPointerLock(): Promise<void> {
-    if (this.currentState !== 'running') {
-      return Promise.resolve();
-    }
-    return this.gameScene?.requestPointerLock() ?? Promise.resolve();
   }
 
   public dispose(): void {
