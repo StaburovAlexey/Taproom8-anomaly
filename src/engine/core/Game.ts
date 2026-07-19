@@ -25,6 +25,7 @@ export interface GameOptions {
   readonly levelUrl?: string;
   readonly fallbackToProcedural?: boolean;
   readonly graphicsQuality?: GraphicsQuality;
+  readonly brightness?: number;
 }
 
 export class Game {
@@ -50,6 +51,7 @@ export class Game {
     this.fallbackToProcedural = options.fallbackToProcedural ?? true;
     this.renderer = new Renderer(container, {
       quality: options.graphicsQuality ?? 'normal',
+      brightness: options.brightness ?? 1,
     });
     this.assets = new AssetManager(this.eventBus);
     this.loop = new Loop((deltaSeconds, elapsedSeconds) => {
@@ -70,6 +72,9 @@ export class Game {
       }),
       this.eventBus.on('ui:graphics-changed', ({ quality }) => {
         this.renderer.setQuality(quality);
+      }),
+      this.eventBus.on('ui:brightness-changed', ({ brightness }) => {
+        this.renderer.setBrightness(brightness);
       }),
     ];
 

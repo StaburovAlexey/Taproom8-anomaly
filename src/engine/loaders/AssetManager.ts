@@ -28,8 +28,11 @@ export class AssetManager {
     this.bindLoadingEvents();
   }
 
-  public loadGLTF(url: string): Promise<GLTF> {
-    return this.models.load(url);
+  public loadGLTF(
+    url: string,
+    onProgress?: (event: ProgressEvent<EventTarget>) => void,
+  ): Promise<GLTF> {
+    return this.models.load(url, onProgress);
   }
 
   public loadTexture(url: string, options?: TextureLoadOptions): Promise<Texture> {
@@ -43,7 +46,7 @@ export class AssetManager {
   }
 
   public dispose(): void {
-    this.models.clear(true);
+    this.models.dispose();
     this.textures.clear(true);
   }
 

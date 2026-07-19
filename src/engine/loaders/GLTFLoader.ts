@@ -3,6 +3,8 @@ import {
   GLTFLoader as ThreeGLTFLoader,
   type GLTF,
 } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 
 function disposeMaterial(material: Material | readonly Material[]): void {
   const materials: readonly Material[] = Array.isArray(material)
@@ -25,19 +27,26 @@ function disposeScene(root: Object3D): void {
 
 export class GLTFAssetLoader {
   private readonly loader: ThreeGLTFLoader;
+  private readonly dracoLoader: DRACOLoader;
   private readonly cache = new Map<string, Promise<GLTF>>();
 
   public constructor(manager: LoadingManager) {
     this.loader = new ThreeGLTFLoader(manager);
+    this.dracoLoader = new DRACOLoader(manager);
+    this.loader.setDRACOLoader(this.dracoLoader);
+    this.loader.setMeshoptDecoder(MeshoptDecoder);
   }
 
-  public async load(url: string): Promise<GLTF> {
+  public async load(
+    url: string,
+    onProgress?: (event: ProgressEvent<EventTarget>) => void,
+  ): Promise<GLTF> {
     const cached = this.cache.get(url);
     if (cached !== undefined) {
       return cached;
     }
 
-    const request = this.loader.loadAsync(url);
+    const request = this.loader.loadAsync(url, onProgress);
     this.cache.set(url, request);
 
     try {
@@ -68,6 +77,11 @@ export class GLTFAssetLoader {
       }
     }
     this.cache.clear();
+  }
+
+  public dispose(): void {
+    this.clear(true);
+    this.dracoLoader.dispose();
   }
 }
 

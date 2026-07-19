@@ -11,8 +11,13 @@ import type { GraphicsQuality } from '../../shared/events';
 
 export interface RendererOptions {
   readonly quality?: GraphicsQuality;
+  readonly brightness?: number;
   readonly clearAlpha?: number;
 }
+
+const BASE_EXPOSURE = 1.65;
+const MIN_BRIGHTNESS = 0.5;
+const MAX_BRIGHTNESS = 1.5;
 
 export class Renderer {
   public readonly instance: WebGLRenderer;
@@ -29,7 +34,7 @@ export class Renderer {
     });
     this.instance.outputColorSpace = SRGBColorSpace;
     this.instance.toneMapping = ACESFilmicToneMapping;
-    this.instance.toneMappingExposure = 1.55;
+    this.setBrightness(options.brightness ?? 1);
     this.instance.setClearAlpha(options.clearAlpha ?? 1);
     this.instance.shadowMap.type = PCFShadowMap;
     this.instance.domElement.tabIndex = 0;
@@ -56,6 +61,11 @@ export class Renderer {
     this.quality = quality;
     this.applyQuality();
     this.resize();
+  }
+
+  public setBrightness(brightness: number): void {
+    const normalized = Math.min(MAX_BRIGHTNESS, Math.max(MIN_BRIGHTNESS, brightness));
+    this.instance.toneMappingExposure = BASE_EXPOSURE * normalized;
   }
 
   public resize(width?: number, height?: number): void {

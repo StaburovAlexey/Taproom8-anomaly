@@ -17,7 +17,7 @@ export interface LoadingProgressEvent {
   readonly loaded: number;
   readonly total: number;
   readonly url?: string;
-  readonly stage: 'asset' | 'level';
+  readonly stage: 'asset' | 'level' | 'model' | 'texture' | 'audio';
 }
 
 export interface EngineReadyEvent {
@@ -64,6 +64,7 @@ export interface RoundStartedEvent {
   readonly level: number;
   readonly difficulty: RoundDifficulty;
   readonly anomalyId: string | null;
+  readonly anomalyTargetObjectId: string | null;
   readonly hasAnomaly: boolean;
 }
 
@@ -78,6 +79,7 @@ export interface GameEventMap {
   'ui:unlock-audio': void;
   'ui:button-pressed': void;
   'ui:graphics-changed': { readonly quality: GraphicsQuality };
+  'ui:brightness-changed': { readonly brightness: number };
   'ui:volume-changed': { readonly master: number };
   'ui:mobile-move': Vector2Value;
   'ui:mobile-look': Vector2Value;
@@ -100,6 +102,7 @@ export interface GameEventMap {
   'audio:speaker-sources-changed': {
     readonly positions: readonly Vector3Value[];
   };
+  'audio:preload-completed': void;
 
   'player:movement-started': MovementEvent;
   'player:movement-stopped': MovementEvent;
