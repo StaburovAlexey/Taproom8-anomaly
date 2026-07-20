@@ -152,6 +152,7 @@ export class GameScene implements ManagedScene {
     this.textureAnomalyPresenter = new TextureAnomalyPresenter(this.registry);
     this.levelNumberPresenter = new LevelNumberPresenter(this.registry);
     if (this.pendingRound !== null) {
+      this.interactions.startRound(this.pendingRound);
       this.anomalyPresenter.apply(this.pendingRound);
       this.textureAnomalyPresenter.apply(this.pendingRound);
       this.levelNumberPresenter.setLevel(this.pendingRound.level);
@@ -252,7 +253,7 @@ export class GameScene implements ManagedScene {
   private handleRoundStarted(round: RoundStartedEvent): void {
     this.pendingRound = round;
     this.roundResolved = false;
-    this.interactions?.resetRound();
+    this.interactions?.startRound(round);
     this.anomalyPresenter?.apply(round);
     this.textureAnomalyPresenter?.apply(round);
     this.levelNumberPresenter?.setLevel(round.level);

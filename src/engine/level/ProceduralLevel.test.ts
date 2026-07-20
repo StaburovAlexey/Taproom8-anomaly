@@ -32,7 +32,7 @@ describe('procedural level contract', () => {
     presenter.apply({
       level: 1,
       difficulty: 'Easy',
-      anomalyId: 'chair_removed',
+      anomalyId: 'flip_flop:Chair01:removed',
       anomalyTargetObjectId: 'Chair01',
       hasAnomaly: true,
     });

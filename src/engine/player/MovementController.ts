@@ -8,6 +8,7 @@ import {
 
 export interface MovementControllerOptions {
   readonly speed?: number;
+  readonly sprintMultiplier?: number;
   readonly collisionRadius?: number;
   readonly collisionHeight?: number;
   readonly collisionObjects?: readonly Object3D[];
@@ -24,11 +25,13 @@ export class MovementController {
   private readonly raycaster = new Raycaster();
   private readonly upAxis = new Vector3(0, 1, 0);
   private readonly speed: number;
+  private readonly sprintMultiplier: number;
   private readonly collisionRadius: number;
   private readonly collisionHeight: number;
   private readonly collisionObjects: Object3D[];
   private movementBounds: Box3 | null;
   private moving = false;
+  private sprinting = false;
 
   public constructor(
     playerRoot: Object3D,
@@ -38,6 +41,7 @@ export class MovementController {
     this.playerRoot = playerRoot;
     this.eventBus = eventBus;
     this.speed = options.speed ?? 2.45;
+    this.sprintMultiplier = options.sprintMultiplier ?? 1.65;
     this.collisionRadius = options.collisionRadius ?? 0.28;
     this.collisionHeight = options.collisionHeight ?? 0.5;
     this.collisionObjects = [...(options.collisionObjects ?? [])];
@@ -49,27 +53,33 @@ export class MovementController {
     this.clampToBounds();
   }
 
-  public update(deltaSeconds: number, movementX: number, movementY: number): void {
+  public update(
+    deltaSeconds: number,
+    movementX: number,
+    movementY: number,
+    sprinting = false,
+  ): void {
     const inputLength = Math.hypot(movementX, movementY);
     const shouldMove = inputLength > 0.001;
     if (!shouldMove) {
-      this.updateMovingState(false);
+      this.updateMovingState(false, false);
       return;
     }
 
     const normalization = inputLength > 1 ? 1 / inputLength : 1;
     this.direction.set(movementX * normalization, 0, -movementY * normalization);
     this.direction.applyAxisAngle(this.upAxis, this.playerRoot.rotation.y);
-    this.movementDelta.copy(this.direction).multiplyScalar(this.speed * deltaSeconds);
+    const speed = this.speed * (sprinting ? this.sprintMultiplier : 1);
+    this.movementDelta.copy(this.direction).multiplyScalar(speed * deltaSeconds);
     this.moveAlongAxis('x', this.movementDelta.x);
     this.moveAlongAxis('z', this.movementDelta.z);
     this.clampToBounds();
     this.playerRoot.updateMatrixWorld(true);
-    this.updateMovingState(true);
+    this.updateMovingState(true, sprinting);
   }
 
   public stop(): void {
-    this.updateMovingState(false);
+    this.updateMovingState(false, false);
   }
 
   public dispose(): void {
@@ -145,19 +155,27 @@ export class MovementController {
     );
   }
 
-  private updateMovingState(nextMoving: boolean): void {
-    if (this.moving === nextMoving) {
+  private updateMovingState(nextMoving: boolean, nextSprinting: boolean): void {
+    const sprinting = nextMoving && nextSprinting;
+    if (this.moving === nextMoving && this.sprinting === sprinting) {
       return;
     }
+    const movementChanged = this.moving !== nextMoving;
     this.moving = nextMoving;
+    this.sprinting = sprinting;
     const position = {
       x: this.playerRoot.position.x,
       y: this.playerRoot.position.y,
       z: this.playerRoot.position.z,
     };
-    this.eventBus.emit(
-      nextMoving ? 'player:movement-started' : 'player:movement-stopped',
-      { position },
-    );
+    const event = { position, sprinting };
+    if (movementChanged) {
+      this.eventBus.emit(
+        nextMoving ? 'player:movement-started' : 'player:movement-stopped',
+        event,
+      );
+      return;
+    }
+    this.eventBus.emit('player:sprint-changed', event);
   }
 }

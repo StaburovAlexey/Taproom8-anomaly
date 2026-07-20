@@ -78,7 +78,7 @@ const messages = {
     brand: {
       title: 'TAPROOM',
       accent: '8',
-      subtitle: 'Do not trust memory. Look closer.',
+      subtitle: 'Nothing is right, nothing is as it should be...',
     },
     common: {
       back: 'Back',

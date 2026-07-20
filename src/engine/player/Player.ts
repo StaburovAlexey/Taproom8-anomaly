@@ -56,7 +56,12 @@ export class Player {
 
   public update(deltaSeconds: number, input: InputFrame): void {
     this.cameraController.applyLookDelta(input.lookDeltaX, input.lookDeltaY);
-    this.movementController.update(deltaSeconds, input.movementX, input.movementY);
+    this.movementController.update(
+      deltaSeconds,
+      input.movementX,
+      input.movementY,
+      input.sprint,
+    );
   }
 
   public teleportTo(spawn: Object3D): void {

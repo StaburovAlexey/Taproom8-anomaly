@@ -6,6 +6,7 @@ import {
 } from '../../shared/events';
 
 const MOVEMENT_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD']);
+const SPRINT_KEYS = new Set(['ShiftLeft', 'ShiftRight']);
 
 export class DesktopControls {
   private readonly element: HTMLElement;
@@ -72,6 +73,13 @@ export class DesktopControls {
     return { x, y };
   }
 
+  public get sprinting(): boolean {
+    return this.pointerLocked && (
+      this.pressedKeys.has('ShiftLeft')
+      || this.pressedKeys.has('ShiftRight')
+    );
+  }
+
   public consumeLookDelta(): Vector2Value {
     const delta = { x: this.lookX, y: this.lookY };
     this.lookX = 0;
@@ -124,7 +132,7 @@ export class DesktopControls {
   }
 
   private readonly handleKeyDown = (event: KeyboardEvent): void => {
-    if (MOVEMENT_KEYS.has(event.code)) {
+    if (MOVEMENT_KEYS.has(event.code) || SPRINT_KEYS.has(event.code)) {
       this.pressedKeys.add(event.code);
       event.preventDefault();
       return;
@@ -137,7 +145,7 @@ export class DesktopControls {
   };
 
   private readonly handleKeyUp = (event: KeyboardEvent): void => {
-    if (MOVEMENT_KEYS.has(event.code)) {
+    if (MOVEMENT_KEYS.has(event.code) || SPRINT_KEYS.has(event.code)) {
       this.pressedKeys.delete(event.code);
       event.preventDefault();
     }

@@ -34,6 +34,7 @@ export interface EngineErrorEvent {
 
 export interface MovementEvent {
   readonly position: Vector3Value;
+  readonly sprinting: boolean;
 }
 
 export interface DoorSelectedEvent {
@@ -106,6 +107,7 @@ export interface GameEventMap {
 
   'player:movement-started': MovementEvent;
   'player:movement-stopped': MovementEvent;
+  'player:sprint-changed': MovementEvent;
   'player:pointer-lock': PointerLockEvent;
 
   'interaction:door-selected': DoorSelectedEvent;

@@ -14,6 +14,7 @@ import {
   type DoorObjectName,
   type EventBus,
   type GameEventMap,
+  type RoundStartedEvent,
 } from '../../shared/events';
 import type { InputFrame } from '../controls/InputManager';
 import {
@@ -21,6 +22,10 @@ import {
   isDoorObjectName,
   LEVEL_OBJECT_NAMES,
 } from '../level/LevelContract';
+import {
+  LOCKED_INTERACTIVE_DOOR_PANEL_IDS,
+  UNLOCK_DOOR_001_ANOMALY,
+} from '../level/DoorAnomalyContract';
 import { ObjectRegistry } from '../level/ObjectRegistry';
 
 export interface InteractionManagerOptions {
@@ -36,6 +41,8 @@ interface DoorRotationAnimation {
   elapsedSeconds: number;
 }
 
+const REVERSED_DOOR_PANEL_NAMES = new Set(['DOOR.004']);
+
 export class InteractionManager {
   private readonly camera: PerspectiveCamera;
   private readonly eventBus: EventBus<GameEventMap>;
@@ -45,7 +52,8 @@ export class InteractionManager {
   private readonly interactiveDoorColliders = new Map<Object3D, Object3D>();
   private readonly initialPanelRotations = new Map<Object3D, number>();
   private readonly interactableSet: ReadonlySet<Object3D>;
-  private readonly interactiveDoorSet: ReadonlySet<Object3D>;
+  private readonly defaultInteractiveDoorSet = new Set<Object3D>();
+  private readonly interactiveDoorSet = new Set<Object3D>();
   private readonly raycaster = new Raycaster();
   private readonly screenCenter = new Vector2(0, 0);
   private readonly raycastDistance: number;
@@ -91,10 +99,13 @@ export class InteractionManager {
       }
       this.interactiveDoorPanels.set(object, panel);
       this.initialPanelRotations.set(object, panel.rotation.y);
+      if (!LOCKED_INTERACTIVE_DOOR_PANEL_IDS.has(panel.name)) {
+        this.defaultInteractiveDoorSet.add(object);
+        this.interactiveDoorSet.add(object);
+      }
       return true;
     }) ?? [];
     this.interactableSet = new Set([...this.doors, ...this.interactiveDoors]);
-    this.interactiveDoorSet = new Set(this.interactiveDoors);
     this.raycastDistance = options.raycastDistance ?? 3.25;
     this.selectionCooldownSeconds = options.selectionCooldownSeconds ?? 0.45;
     this.raycaster.far = this.raycastDistance;
@@ -147,7 +158,7 @@ export class InteractionManager {
       this.doorAnimations.set(this.focusedDoor, {
         target: panel,
         startRotation: panel.rotation.y,
-        endRotation: panel.rotation.y + Math.PI / 2,
+        endRotation: panel.rotation.y + this.getDoorOpeningAngle(panel),
         elapsedSeconds: 0,
       });
       this.openedInteractiveDoors.add(this.focusedDoor);
@@ -186,7 +197,25 @@ export class InteractionManager {
       panel.rotation.y = this.initialPanelRotations.get(door) ?? 0;
       panel.updateMatrixWorld(true);
     }
+    this.interactiveDoorSet.clear();
+    for (const door of this.defaultInteractiveDoorSet) {
+      this.interactiveDoorSet.add(door);
+    }
     this.setFocusedDoor(null);
+  }
+
+  public startRound(round: RoundStartedEvent): void {
+    this.resetRound();
+    if (round.anomalyId !== UNLOCK_DOOR_001_ANOMALY.id) {
+      return;
+    }
+
+    for (const [door, panel] of this.interactiveDoorPanels) {
+      if (panel.name === UNLOCK_DOOR_001_ANOMALY.targetObjectId) {
+        this.interactiveDoorSet.add(door);
+        return;
+      }
+    }
   }
 
   public dispose(): void {
@@ -216,10 +245,16 @@ export class InteractionManager {
     }
   }
 
+  private getDoorOpeningAngle(panel: Object3D): number {
+    const sourceName = panel.userData['name'];
+    const panelName = typeof sourceName === 'string' ? sourceName : panel.name;
+    return REVERSED_DOOR_PANEL_NAMES.has(panelName) ? -Math.PI / 2 : Math.PI / 2;
+  }
+
   private findFocusedDoor(): Object3D | null {
     this.raycaster.setFromCamera(this.screenCenter, this.camera);
     const intersections = this.raycaster.intersectObjects(
-      [...this.doors, ...this.interactiveDoors],
+      [...this.doors, ...this.interactiveDoorSet],
       true,
     );
     for (const intersection of intersections) {

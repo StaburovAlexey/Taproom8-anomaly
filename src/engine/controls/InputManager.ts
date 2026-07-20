@@ -11,6 +11,7 @@ export interface InputFrame {
   readonly movementY: number;
   readonly lookDeltaX: number;
   readonly lookDeltaY: number;
+  readonly sprint: boolean;
   readonly interact: boolean;
 }
 
@@ -82,6 +83,7 @@ export class InputManager {
       movementY,
       lookDeltaX: desktopLook.x + mobileLook.x * mobileScale,
       lookDeltaY: desktopLook.y + mobileLook.y * mobileScale,
+      sprint: this.desktop.sprinting,
       interact: this.desktop.consumeInteraction() || this.mobile.consumeInteraction(),
     };
   }

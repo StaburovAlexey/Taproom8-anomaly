@@ -18,7 +18,7 @@ export class RemovalAnomalyPresenter {
     if (
       !round.hasAnomaly
       || round.anomalyTargetObjectId === null
-      || round.anomalyId?.startsWith('flip_texture:')
+      || !round.anomalyId?.startsWith('flip_flop:')
     ) {
       return
     }

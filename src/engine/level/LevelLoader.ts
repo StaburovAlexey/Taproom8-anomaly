@@ -25,7 +25,7 @@ import { createProceduralLevel } from './ProceduralLevel';
 import { applyExternalTextures } from './ExternalTextureApplier';
 import { applyPS1Style } from '../rendering/PS1Style';
 
-export const DEFAULT_LEVEL_URL = '/assets/models/3.glb';
+export const DEFAULT_LEVEL_URL = '/assets/models/level.glb';
 
 export interface LoadedLevel {
   readonly root: Object3D;

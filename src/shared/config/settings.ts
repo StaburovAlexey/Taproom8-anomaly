@@ -28,7 +28,7 @@ export const DEFAULT_VOLUME: VolumeSettings = {
 export const DEFAULT_SETTINGS: PersistedSettings = {
   language: 'ru',
   graphics: 'normal',
-  brightness: 1,
+  brightness: 0.8,
   volume: DEFAULT_VOLUME,
 }
 
