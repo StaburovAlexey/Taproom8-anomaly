@@ -1,0 +1,46 @@
+<script setup lang="ts">
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+import type { Vector2Value } from '@/shared/events'
+import GameHud from '@/ui/components/GameHud.vue'
+import MobileControls from '@/ui/components/MobileControls.vue'
+
+const props = defineProps<{
+  level: number
+  totalLevels: number
+  anomalyTargetObjectId: string | null
+  interactionHint: string | null
+}>()
+
+defineEmits<{
+  menu: []
+  move: [axis: Vector2Value]
+  look: [axis: Vector2Value]
+  interact: []
+}>()
+
+const { t } = useI18n()
+const interactionLabel = computed(() =>
+  props.interactionHint === null
+    ? t('common.open')
+    : t(props.interactionHint),
+)
+</script>
+
+<template>
+  <GameHud
+    :level="level"
+    :total-levels="totalLevels"
+    :anomaly-target-object-id="anomalyTargetObjectId"
+    :interaction-hint="interactionHint"
+    @menu="$emit('menu')"
+  />
+  <MobileControls
+    :can-interact="interactionHint !== null"
+    :interact-label="interactionLabel"
+    @move="$emit('move', $event)"
+    @look="$emit('look', $event)"
+    @interact="$emit('interact')"
+  />
+</template>
