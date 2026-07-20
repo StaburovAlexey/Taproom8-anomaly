@@ -60,6 +60,26 @@ export interface PointerLockEvent {
 }
 
 export type RoundDifficulty = 'None' | 'Easy' | 'Medium' | 'Hard';
+export type LevelAnomalyDifficulty = Exclude<RoundDifficulty, 'None'>;
+export type LevelAnomalyKind = 'remove' | 'texture-swap' | 'sprite';
+
+export interface LevelAnomalyDefinition {
+  readonly kind: LevelAnomalyKind;
+  readonly difficulty: LevelAnomalyDifficulty;
+  readonly targetObjectId: string;
+  readonly assetBaseName: string;
+}
+
+export interface DevAnomalyOption {
+  readonly id: string;
+  readonly difficulty: Exclude<RoundDifficulty, 'None'>;
+  readonly targetObjectId: string;
+}
+
+export type DevNextAnomalySelection =
+  | { readonly kind: 'random' }
+  | { readonly kind: 'none' }
+  | { readonly kind: 'anomaly'; readonly anomalyId: string };
 
 export interface RoundStartedEvent {
   readonly level: number;
@@ -86,6 +106,12 @@ export interface GameEventMap {
   'ui:mobile-look': Vector2Value;
   'ui:mobile-interact': void;
 
+  'dev:anomaly-options-changed': {
+    readonly options: readonly DevAnomalyOption[];
+  };
+  'dev:next-anomaly-selected': DevNextAnomalySelection;
+  'dev:next-anomaly-consumed': void;
+
   'game:run-requested': void;
   'game:pause-requested': void;
   'session:start-requested': void;
@@ -99,6 +125,7 @@ export interface GameEventMap {
   'level:loaded': {
     readonly source: LevelSource;
     readonly url: string;
+    readonly anomalyDefinitions: readonly LevelAnomalyDefinition[];
   };
   'audio:speaker-sources-changed': {
     readonly positions: readonly Vector3Value[];

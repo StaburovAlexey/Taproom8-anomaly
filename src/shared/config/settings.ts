@@ -15,6 +15,7 @@ export interface VolumeSettings {
 }
 
 const STORAGE_KEY = 'september.settings'
+const SETTINGS_VERSION = 2
 
 export const MIN_BRIGHTNESS = 0.5
 export const MAX_BRIGHTNESS = 1.5
@@ -28,7 +29,7 @@ export const DEFAULT_VOLUME: VolumeSettings = {
 export const DEFAULT_SETTINGS: PersistedSettings = {
   language: 'ru',
   graphics: 'normal',
-  brightness: 0.8,
+  brightness: 1,
   volume: DEFAULT_VOLUME,
 }
 
@@ -73,6 +74,17 @@ function readVolume(value: unknown): VolumeSettings {
   }
 }
 
+function readBrightness(record: Record<string, unknown>): number {
+  const value = record.brightness
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return DEFAULT_SETTINGS.brightness
+  }
+  if (record.settingsVersion !== SETTINGS_VERSION && value === 0.5) {
+    return DEFAULT_SETTINGS.brightness
+  }
+  return clampBrightness(value)
+}
+
 export function readSettings(): PersistedSettings {
   if (typeof window === 'undefined') {
     return createDefaultSettings()
@@ -95,9 +107,7 @@ export function readSettings(): PersistedSettings {
       graphics: isGraphicsQuality(record.graphics)
         ? record.graphics
         : DEFAULT_SETTINGS.graphics,
-      brightness: typeof record.brightness === 'number' && Number.isFinite(record.brightness)
-        ? clampBrightness(record.brightness)
-        : DEFAULT_SETTINGS.brightness,
+      brightness: readBrightness(record),
       volume: readVolume(record.volume),
     }
   } catch {
@@ -111,7 +121,10 @@ export function writeSettings(settings: PersistedSettings): void {
   }
 
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      ...settings,
+      settingsVersion: SETTINGS_VERSION,
+    }))
   } catch {
   }
 }

@@ -19,8 +19,8 @@ describe('settings persistence', () => {
     vi.unstubAllGlobals()
   })
 
-  it('uses 80% brightness by default', () => {
-    expect(readSettings().brightness).toBe(0.8)
+  it('uses 100% brightness by default', () => {
+    expect(readSettings().brightness).toBe(1)
   })
 
   it('uses default brightness for settings saved before brightness support', () => {
@@ -30,7 +30,29 @@ describe('settings persistence', () => {
       volume: { master: 1, music: 1, sfx: 1 },
     }))
 
-    expect(readSettings().brightness).toBe(0.8)
+    expect(readSettings().brightness).toBe(1)
+  })
+
+  it('migrates the previous 50% default to 100%', () => {
+    values.set('september.settings', JSON.stringify({
+      language: 'ru',
+      graphics: 'normal',
+      brightness: 0.5,
+      volume: { master: 1, music: 1, sfx: 1 },
+    }))
+
+    expect(readSettings().brightness).toBe(1)
+  })
+
+  it('keeps an explicitly saved 50% value after migration', () => {
+    writeSettings({
+      language: 'ru',
+      graphics: 'normal',
+      brightness: 0.5,
+      volume: { master: 1, music: 1, sfx: 1 },
+    })
+
+    expect(readSettings().brightness).toBe(0.5)
   })
 
   it('uses default volume for settings saved before volume support', () => {

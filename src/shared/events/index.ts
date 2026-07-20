@@ -1,5 +1,7 @@
 export { EventBus, type EventHandler } from './EventBus';
 export {
+  type DevAnomalyOption,
+  type DevNextAnomalySelection,
   type DoorId,
   type DoorObjectName,
   type DoorSelectedEvent,
@@ -10,6 +12,9 @@ export {
   type InteractionHintEvent,
   type InteractiveDoorOpenedEvent,
   type LevelSource,
+  type LevelAnomalyDefinition,
+  type LevelAnomalyDifficulty,
+  type LevelAnomalyKind,
   type LoadingProgressEvent,
   type MovementEvent,
   type PointerLockEvent,
