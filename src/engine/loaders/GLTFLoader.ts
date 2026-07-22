@@ -3,8 +3,10 @@ import {
   GLTFLoader as ThreeGLTFLoader,
   type GLTF,
 } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
-import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
+import {
+  DRACOLoader,
+  DRACO_GLTF_CONFIG,
+} from 'three/examples/jsm/loaders/DRACOLoader.js';
 
 function disposeMaterial(material: Material | readonly Material[]): void {
   const materials: readonly Material[] = Array.isArray(material)
@@ -33,8 +35,8 @@ export class GLTFAssetLoader {
   public constructor(manager: LoadingManager) {
     this.loader = new ThreeGLTFLoader(manager);
     this.dracoLoader = new DRACOLoader(manager);
+    this.dracoLoader.setDecoderPath(DRACO_GLTF_CONFIG);
     this.loader.setDRACOLoader(this.dracoLoader);
-    this.loader.setMeshoptDecoder(MeshoptDecoder);
   }
 
   public async load(

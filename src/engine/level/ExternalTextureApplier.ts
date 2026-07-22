@@ -13,7 +13,7 @@ import {
 } from './AnomalyDiscovery'
 
 const TEXTURE_DIRECTORY = '/assets/models/textures/'
-const ANOMALY_ATLAS_URL = `${TEXTURE_DIRECTORY}FlipFlopObj.png`
+const ANOMALY_ATLAS_URL = `${TEXTURE_DIRECTORY}FlipFlopObj.webp`
 
 const TEXTURE_FILES = [
   'BARREL.001.png',
@@ -25,7 +25,7 @@ const TEXTURE_FILES = [
   'CHAIR_SECOND.001.png',
   'CHAIR_SECOND.006.png',
   'CHAIR_SECOND.png',
-  'CorrectDoor.png',
+  'CorrectDoor.webp',
   'DOOR.001.png',
   'DOOR.002.png',
   'DOOR.003.png',
@@ -38,10 +38,10 @@ const TEXTURE_FILES = [
   'DOORWAY.004.png',
   'DOORWAY.005.png',
   'DOORWAY.png',
-  'fireplace.png',
+  'fireplace.webp',
   'LAMP.png',
   'LAMP_BILIARD.png',
-  'StaticGeometry.png',
+  'StaticGeometry.webp',
   'TOILET.001.png',
   'TOILET.002.png',
   'TOILET.png',
