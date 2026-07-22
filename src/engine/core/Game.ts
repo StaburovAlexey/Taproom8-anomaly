@@ -67,6 +67,10 @@ export class Game {
         }
       }),
       this.eventBus.on('game:pause-requested', () => this.pause()),
+      this.eventBus.on('platform:pause-requested', () => this.pause()),
+      this.eventBus.on('platform:resume-requested', () => {
+        void this.start();
+      }),
       this.eventBus.on('gameplay:input-changed', ({ enabled }) => {
         this.gameScene?.setInputEnabled(enabled);
       }),

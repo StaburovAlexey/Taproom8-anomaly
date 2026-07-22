@@ -13,6 +13,7 @@ import {
   type LevelAnomalyDefinition,
   type LevelSource,
 } from '../../shared/events';
+import { publicAssetUrl } from '../../shared/assets/publicAssetUrl';
 import { AssetManager } from '../loaders/AssetManager';
 import {
   applyDoorMetadata,
@@ -30,7 +31,7 @@ import {
   type AnomalyDiscoveryIssue,
 } from './AnomalyDiscovery';
 
-export const DEFAULT_LEVEL_URL = '/assets/models/level.glb';
+export const DEFAULT_LEVEL_URL = publicAssetUrl('assets/models/level.glb');
 
 export interface LoadedLevel {
   readonly root: Object3D;

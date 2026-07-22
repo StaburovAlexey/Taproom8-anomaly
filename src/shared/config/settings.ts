@@ -3,6 +3,7 @@ export type GraphicsQuality = 'normal' | 'potato'
 
 export interface PersistedSettings {
   language: Language
+  languageOverridden: boolean
   graphics: GraphicsQuality
   brightness: number
   volume: VolumeSettings
@@ -15,7 +16,8 @@ export interface VolumeSettings {
 }
 
 const STORAGE_KEY = 'september.settings'
-const SETTINGS_VERSION = 2
+const SETTINGS_VERSION = 3
+const BRIGHTNESS_SETTINGS_VERSION = 2
 
 export const MIN_BRIGHTNESS = 0.5
 export const MAX_BRIGHTNESS = 1.5
@@ -28,6 +30,7 @@ export const DEFAULT_VOLUME: VolumeSettings = {
 
 export const DEFAULT_SETTINGS: PersistedSettings = {
   language: 'ru',
+  languageOverridden: false,
   graphics: 'normal',
   brightness: 1,
   volume: DEFAULT_VOLUME,
@@ -79,7 +82,10 @@ function readBrightness(record: Record<string, unknown>): number {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
     return DEFAULT_SETTINGS.brightness
   }
-  if (record.settingsVersion !== SETTINGS_VERSION && value === 0.5) {
+  const settingsVersion = typeof record.settingsVersion === 'number'
+    ? record.settingsVersion
+    : 0
+  if (settingsVersion < BRIGHTNESS_SETTINGS_VERSION && value === 0.5) {
     return DEFAULT_SETTINGS.brightness
   }
   return clampBrightness(value)
@@ -104,6 +110,8 @@ export function readSettings(): PersistedSettings {
     const record = candidate as Record<string, unknown>
     return {
       language: isLanguage(record.language) ? record.language : DEFAULT_SETTINGS.language,
+      languageOverridden: record.settingsVersion === SETTINGS_VERSION
+        && record.languageOverridden === true,
       graphics: isGraphicsQuality(record.graphics)
         ? record.graphics
         : DEFAULT_SETTINGS.graphics,

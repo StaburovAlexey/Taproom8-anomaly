@@ -1,4 +1,6 @@
-const TEXTURE_DIRECTORY = '/assets/models/textures/'
+import { publicAssetUrl } from '../../shared/assets/publicAssetUrl'
+
+const TEXTURE_DIRECTORY = publicAssetUrl('assets/models/textures/')
 
 export interface TextureAnomalyUrls {
   readonly normalTextureUrl: string

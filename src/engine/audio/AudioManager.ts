@@ -764,6 +764,15 @@ export class AudioManager {
     }
   }
 
+  private restoreGameplayAudioInternal(): void {
+    void this.startAmbientInternal('ambient_room');
+    if (this.speakerMusicEnabled && this.speakerPlaybacks.size > 0) {
+      return;
+    }
+    this.speakerMusicEnabled = false;
+    this.startSpeakerMusicInternal();
+  }
+
   private stopSpeakerMusicInternal(fadeOutSeconds = 0): void {
     this.speakerMusicEnabled = false;
     this.speakerMusicOffsetSeconds = 0;
@@ -1010,6 +1019,9 @@ export class AudioManager {
       }),
       eventBus.on('audio:speaker-sources-changed', ({ positions }) => {
         this.setSpeakerPositionsInternal(positions);
+      }),
+      eventBus.on('audio:gameplay-resumed', () => {
+        this.restoreGameplayAudioInternal();
       }),
       eventBus.on('player:movement-started', ({ sprinting }) => {
         this.startMovementFootstepsInternal(sprinting);

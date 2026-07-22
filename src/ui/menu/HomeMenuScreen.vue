@@ -25,7 +25,6 @@ const { t } = useI18n()
       <MenuButton :label="t('menu.settings')" @press="$emit('settings')" />
       <MenuButton :label="t('menu.about')" @press="$emit('about')" />
     </nav>
-    <span class="home-menu__version">PROTOTYPE / 0.1</span>
   </section>
 </template>
 
@@ -41,16 +40,6 @@ const { t } = useI18n()
   display: grid;
   width: min(80vw, 24rem);
   gap: 0.75rem;
-}
-
-.home-menu__version {
-  position: absolute;
-  right: max(1.25rem, env(safe-area-inset-right));
-  bottom: max(1.25rem, env(safe-area-inset-bottom));
-  color: var(--color-faint);
-  font-family: var(--font-mono);
-  font-size: 0.55rem;
-  letter-spacing: 0.16em;
 }
 
 @media (orientation: landscape) and (max-height: 600px) {

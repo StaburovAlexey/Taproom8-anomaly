@@ -9,23 +9,49 @@ import {
   type Vector2Value,
 } from '@/shared/events'
 import { useSettingsStore } from '@/ui/stores/settings'
+import {
+  yandexFullscreenAdvertising,
+  type FullscreenAdvertising,
+} from '@/platform/yandex'
 
+import { FullscreenAdSchedule } from './FullscreenAdSchedule'
 import { LoadingProgressAggregator } from './LoadingProgressAggregator'
 import { useUiFlowStore } from './uiFlow.store'
+import type { CinematicTransitionIntent } from './uiFlow.types'
 
-export function useUiFlowController() {
+export interface UiFlowControllerOptions {
+  readonly advertising?: FullscreenAdvertising
+}
+
+export function useUiFlowController(options: UiFlowControllerOptions = {}) {
   const flow = useUiFlowStore()
   const settings = useSettingsStore()
+  const advertising = options.advertising ?? yandexFullscreenAdvertising
+  const adSchedule = new FullscreenAdSchedule()
   const { locale } = useI18n({ useScope: 'global' })
   const cleanups: Array<() => void> = []
   const loadingProgress = new LoadingProgressAggregator()
   let engineReady = false
   let audioReady = false
+  let loadingFinished = false
+  let readyReported = false
+  let coveredTransitionRunning = false
+  let disposed = false
 
   function finishLoadingWhenReady(): void {
-    if (engineReady && audioReady) {
-      flow.showAudioGate()
+    if (!engineReady || !audioReady || loadingFinished) {
+      return
     }
+    loadingFinished = true
+    flow.showAudioGate()
+  }
+
+  function handleScreenEntered(): void {
+    if (flow.screen !== 'audioGate' || readyReported) {
+      return
+    }
+    readyReported = true
+    gameEventBus.emit('platform:ready', undefined)
   }
 
   watch(
@@ -94,7 +120,8 @@ export function useUiFlowController() {
         flow.revealTransition()
       }
     }),
-    gameEventBus.on('round:resolved', ({ completed }) => {
+    gameEventBus.on('round:resolved', ({ completed, correct }) => {
+      adSchedule.recordRound(flow.currentLevel, correct)
       if (!flow.beginTransition(completed ? 'show-completed' : 'advance-round')) {
         return
       }
@@ -115,6 +142,7 @@ export function useUiFlowController() {
 
   function setGameplayInput(enabled: boolean): void {
     gameEventBus.emit('gameplay:input-changed', { enabled })
+    gameEventBus.emit('gameplay:activity-changed', { active: enabled })
   }
 
   function unlockAudio(): void {
@@ -142,6 +170,7 @@ export function useUiFlowController() {
     if (!flow.beginTransition('start-session')) {
       return
     }
+    adSchedule.reset()
     setGameplayInput(false)
     gameEventBus.emit('game:run-requested', undefined)
   }
@@ -172,13 +201,52 @@ export function useUiFlowController() {
   }
 
   function returnHomeFromCompleted(): void {
-    requestAbandonSession()
+    if (!flow.beginTransition('abandon-session')) {
+      return
+    }
+    adSchedule.recordCompletedMenu()
+    setGameplayInput(false)
   }
 
   function handleTransitionCovered(): void {
+    if (coveredTransitionRunning || flow.transitionPhase !== 'covering') {
+      return
+    }
     flow.markTransitionCovered()
+    const intent = flow.transitionIntent
+    const placement = adSchedule.take(intent)
+    if (placement === null) {
+      continueCoveredTransition(intent)
+      return
+    }
 
-    switch (flow.transitionIntent) {
+    coveredTransitionRunning = true
+    void advertising.show({
+      resumeGameAfterClose: intent === 'advance-round',
+    }).catch((cause: unknown) => {
+      gameEventBus.emit('engine:error', {
+        error: cause instanceof Error
+          ? cause
+          : new Error('Showing fullscreen advertising.', { cause }),
+        context: `Showing fullscreen advertising at ${placement}.`,
+        recoverable: true,
+      })
+    }).finally(() => {
+      coveredTransitionRunning = false
+      if (
+        !disposed
+        && flow.transitionPhase === 'covered'
+        && flow.transitionIntent === intent
+      ) {
+        continueCoveredTransition(intent)
+      }
+    })
+  }
+
+  function continueCoveredTransition(
+    intent: CinematicTransitionIntent | null,
+  ): void {
+    switch (intent) {
       case 'start-session':
         flow.showGameplay()
         gameEventBus.emit('session:start-requested', undefined)
@@ -260,12 +328,14 @@ export function useUiFlowController() {
   }
 
   onScopeDispose(() => {
+    disposed = true
     cleanups.forEach((cleanup) => cleanup())
   })
 
   return {
     unlockAudio,
     handleMenuClick,
+    handleScreenEntered,
     startSession,
     resumeGameplay,
     openPause,

@@ -48,7 +48,11 @@ const { isFullscreen, isSupported, toggle: toggleFullscreen } = useFullscreen()
       @interact="controller.interactOnMobile"
     />
 
-    <Transition name="screen-fade" mode="out-in">
+    <Transition
+      name="screen-fade"
+      mode="out-in"
+      @after-enter="controller.handleScreenEntered"
+    >
       <LoadingScreen
         v-if="screen === 'loading'"
         key="loading"

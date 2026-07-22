@@ -1,5 +1,6 @@
 import { Mesh, MeshBasicMaterial, type Object3D } from 'three'
 
+import { publicAssetUrl } from '../../shared/assets/publicAssetUrl'
 import { AssetManager } from '../loaders/AssetManager'
 import type { LevelAnomalyDefinition } from '../../shared/events'
 import { applyPS1TextureStyle } from '../rendering/PS1Style'
@@ -12,7 +13,7 @@ import {
   FLIP_TEXTURE_ROOT_NAME,
 } from './AnomalyDiscovery'
 
-const TEXTURE_DIRECTORY = '/assets/models/textures/'
+const TEXTURE_DIRECTORY = publicAssetUrl('assets/models/textures/')
 const ANOMALY_ATLAS_URL = `${TEXTURE_DIRECTORY}FlipFlopObj.webp`
 
 const TEXTURE_FILES = [

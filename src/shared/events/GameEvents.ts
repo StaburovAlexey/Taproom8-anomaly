@@ -97,6 +97,13 @@ export interface RoundResolvedEvent {
 }
 
 export interface GameEventMap {
+  'platform:ready': void;
+  'platform:pause-requested': void;
+  'platform:resume-requested': void;
+  'gameplay:activity-changed': { readonly active: boolean };
+  'advertising:break-started': void;
+  'advertising:break-finished': { readonly resumeGame: boolean };
+
   'ui:unlock-audio': void;
   'ui:button-pressed': void;
   'ui:graphics-changed': { readonly quality: GraphicsQuality };
@@ -130,6 +137,7 @@ export interface GameEventMap {
   'audio:speaker-sources-changed': {
     readonly positions: readonly Vector3Value[];
   };
+  'audio:gameplay-resumed': void;
   'audio:preload-completed': void;
 
   'player:movement-started': MovementEvent;

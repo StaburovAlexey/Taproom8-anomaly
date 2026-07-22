@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
+import { publicAssetUrl } from '@/shared/assets/publicAssetUrl'
 
 const { t } = useI18n()
+const correctDoorImageUrl = publicAssetUrl('img/CorrectDoor.png')
+const wrongDoorImageUrl = publicAssetUrl('img/WrongDoor.png')
 </script>
 
 <template>
@@ -10,7 +13,7 @@ const { t } = useI18n()
       <div class="door-choice-guide__image-frame">
         <img
           class="door-choice-guide__image"
-          src="/img/CorrectDoor.png"
+          :src="correctDoorImageUrl"
           :alt="t('about.anomalyDoorAlt')"
           loading="lazy"
           decoding="async"
@@ -25,7 +28,7 @@ const { t } = useI18n()
       <div class="door-choice-guide__image-frame">
         <img
           class="door-choice-guide__image"
-          src="/img/WrongDoor.png"
+          :src="wrongDoorImageUrl"
           :alt="t('about.noAnomalyDoorAlt')"
           loading="lazy"
           decoding="async"

@@ -26,6 +26,7 @@ function keepOnlyGltfDracoDecoder(): Plugin {
 }
 
 export default defineConfig({
+  base: './',
   plugins: [vue(), keepOnlyGltfDracoDecoder()],
   resolve: {
     alias: {

@@ -191,3 +191,8 @@ export const i18n = createI18n({
   fallbackLocale: 'en',
   messages,
 })
+
+export function setI18nLanguage(language: 'ru' | 'en'): void {
+  i18n.global.locale.value = language
+  document.documentElement.lang = language
+}

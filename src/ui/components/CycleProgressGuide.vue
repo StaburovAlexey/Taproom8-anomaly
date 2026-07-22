@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
+import { publicAssetUrl } from '@/shared/assets/publicAssetUrl'
 
 const { t } = useI18n()
+const progressImageUrl = publicAssetUrl('img/level.png')
 </script>
 
 <template>
@@ -9,7 +11,7 @@ const { t } = useI18n()
     <div class="cycle-progress-guide__image-frame">
       <img
         class="cycle-progress-guide__image"
-        src="/img/level.png"
+        :src="progressImageUrl"
         :alt="t('about.progressImageAlt')"
         loading="lazy"
         decoding="async"

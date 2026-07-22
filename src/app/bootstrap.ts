@@ -3,32 +3,53 @@ import { createApp } from 'vue'
 
 import App from '@/app/App.vue'
 import { GameCoordinator } from '@/app/runtime/GameCoordinator'
+import { GameLifecycleCoordinator } from '@/app/runtime/GameLifecycleCoordinator'
 import { AudioManager } from '@/engine/audio'
 import '@/engine/audio'
 import { gameEventBus } from '@/shared/events'
-import { i18n } from '@/shared/i18n'
+import { i18n, setI18nLanguage } from '@/shared/i18n'
+import { yandexGamesSdk } from '@/platform/yandex'
+import { publicAssetUrl } from '@/shared/assets/publicAssetUrl'
 import { useSettingsStore } from '@/ui/stores/settings'
 import '@/ui/styles/global.css'
 
-export function bootstrap(): void {
+export interface BootstrapOptions {
+  readonly platformInitializationError?: Error | null
+}
+
+export function bootstrap(options: BootstrapOptions = {}): void {
   const gameCoordinator = new GameCoordinator()
+  const lifecycleCoordinator = new GameLifecycleCoordinator()
   gameCoordinator.connect()
+  lifecycleCoordinator.connect()
 
   const app = createApp(App)
   const pinia = createPinia()
 
   app.use(pinia)
-  AudioManager.applyVolumeSettings(useSettingsStore(pinia).volume)
+  const settings = useSettingsStore(pinia)
+  settings.applyPlatformLanguage(yandexGamesSdk.language)
+  setI18nLanguage(settings.language)
+  AudioManager.applyVolumeSettings(settings.volume)
   app.use(i18n)
   app.mount('#app')
 
+  if (options.platformInitializationError !== null
+    && options.platformInitializationError !== undefined) {
+    gameEventBus.emit('engine:error', {
+      error: options.platformInitializationError,
+      context: 'Initializing Yandex Games SDK.',
+      recoverable: true,
+    })
+  }
+
   const audioManifest = {
-    menu_music: '/assets/audio/menu.mp3',
-    speaker_music: '/assets/audio/menu.mp3',
-    button_click: '/assets/audio/click.wav',
-    door_open: '/assets/audio/open.wav',
-    door_close: '/assets/audio/open.wav',
-    footstep_default: '/assets/audio/footstep.wav',
+    menu_music: publicAssetUrl('assets/audio/menu.mp3'),
+    speaker_music: publicAssetUrl('assets/audio/menu.mp3'),
+    button_click: publicAssetUrl('assets/audio/click.wav'),
+    door_open: publicAssetUrl('assets/audio/open.wav'),
+    door_close: publicAssetUrl('assets/audio/open.wav'),
+    footstep_default: publicAssetUrl('assets/audio/footstep.wav'),
   } as const
   gameEventBus.emit('loading:progress', {
     progress: 0,
@@ -49,6 +70,7 @@ export function bootstrap(): void {
 
   import.meta.hot?.dispose(() => {
     gameCoordinator.dispose()
+    lifecycleCoordinator.dispose()
     app.unmount()
   })
 }
