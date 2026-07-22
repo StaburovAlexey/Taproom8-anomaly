@@ -42,7 +42,7 @@ export class InputManager {
   ) {
     this.desktop = new DesktopControls(element, eventBus);
     this.mobile = new MobileControls();
-    this.mobileLookUnitsPerSecond = options.mobileLookUnitsPerSecond ?? 520;
+    this.mobileLookUnitsPerSecond = options.mobileLookUnitsPerSecond ?? 720;
     this.unsubscribers = [
       eventBus.on('ui:mobile-move', ({ x, y }) => this.mobile.setMovement(x, y)),
       eventBus.on('ui:mobile-look', ({ x, y }) => this.mobile.setLook(x, y)),

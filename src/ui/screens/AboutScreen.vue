@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 
+import CycleProgressGuide from '@/ui/components/CycleProgressGuide.vue'
 import DoorChoiceGuide from '@/ui/components/DoorChoiceGuide.vue'
 import MenuButton from '@/ui/components/MenuButton.vue'
 
@@ -28,6 +29,7 @@ const { t } = useI18n()
           </li>
           <li>{{ t('about.complete') }}</li>
         </ol>
+        <CycleProgressGuide />
       </section>
 
       <section class="about-screen__section">

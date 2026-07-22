@@ -99,7 +99,7 @@ export class DesktopControls {
   }
 
   public async requestPointerLock(): Promise<void> {
-    if (this.pointerLocked) {
+    if (!this.canUsePointerLock || this.pointerLocked) {
       return;
     }
 
@@ -129,6 +129,10 @@ export class DesktopControls {
     this.lookX = 0;
     this.lookY = 0;
     this.interactionRequested = false;
+  }
+
+  private get canUsePointerLock(): boolean {
+    return window.matchMedia('(pointer: fine)').matches;
   }
 
   private readonly handleKeyDown = (event: KeyboardEvent): void => {
@@ -174,6 +178,9 @@ export class DesktopControls {
   };
 
   private readonly handleClick = (): void => {
+    if (!this.canUsePointerLock) {
+      return;
+    }
     if (this.pointerLocked) {
       this.interactionRequested = true;
       return;

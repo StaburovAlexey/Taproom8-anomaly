@@ -14,7 +14,6 @@ const { t } = useI18n()
 <template>
   <section class="screen completed-screen">
     <div class="completed-screen__content">
-      <p class="completed-screen__eyebrow">{{ t('completed.eyebrow') }}</p>
       <h2 class="completed-screen__title">{{ t('completed.title') }}</h2>
       <p class="completed-screen__text">{{ t('completed.text') }}</p>
       <div class="completed-screen__actions">
@@ -27,7 +26,9 @@ const { t } = useI18n()
 
 <style scoped>
 .completed-screen {
-  background: radial-gradient(circle at 50% 45%, rgb(124 221 204 / 12%), transparent 42%);
+  background:
+    radial-gradient(circle at 50% 45%, rgb(124 221 204 / 12%), transparent 42%),
+    var(--color-bg);
 }
 
 .completed-screen__content {
@@ -35,14 +36,6 @@ const { t } = useI18n()
   width: min(84vw, 42rem);
   justify-items: center;
   text-align: center;
-}
-
-.completed-screen__eyebrow {
-  margin: 0 0 1.5rem;
-  color: var(--color-signal);
-  font-family: var(--font-mono);
-  font-size: 0.63rem;
-  letter-spacing: 0.25em;
 }
 
 .completed-screen__title {

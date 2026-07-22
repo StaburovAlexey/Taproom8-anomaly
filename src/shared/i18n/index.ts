@@ -56,9 +56,8 @@ const messages = {
       openInteractiveDoor: 'Открыть дверь',
     },
     completed: {
-      eyebrow: 'ЦИКЛ ЗАВЕРШЁН',
-      title: 'Вы сохранили память',
-      text: 'Все циклы пройдены.',
+      title: 'Вы прошли',
+      text: 'Поздравляю!',
       again: 'Начать новый цикл',
       menu: 'В главное меню',
     },
@@ -86,6 +85,8 @@ const messages = {
       menuButton: 'Кнопка меню',
       anomalyDoorAlt: 'Дверь для выбора «Есть аномалия»',
       noAnomalyDoorAlt: 'Дверь для выбора «Нет аномалии»',
+      progressImageAlt: 'Экран в комнате с номером текущего цикла',
+      progressDescription: 'Экран показывает текущий цикл. Если число увеличилось — вы продвинулись дальше. Если оно вернулось к нулю — прохождение началось заново.',
     },
     errors: {
       engine: 'Не удалось запустить 3D-сцену.',
@@ -145,9 +146,8 @@ const messages = {
       openInteractiveDoor: 'Open door',
     },
     completed: {
-      eyebrow: 'CYCLE COMPLETE',
-      title: 'You preserved your memory',
-      text: 'All cycles have been completed.',
+      title: 'You made it',
+      text: 'Congratulations!',
       again: 'Start a new cycle',
       menu: 'Return to main menu',
     },
@@ -175,6 +175,8 @@ const messages = {
       menuButton: 'Menu button',
       anomalyDoorAlt: 'The door used to choose “Anomaly”',
       noAnomalyDoorAlt: 'The door used to choose “No anomaly”',
+      progressImageAlt: 'A screen in the room showing the current cycle number',
+      progressDescription: 'The screen shows the current cycle. If the number increases, you have progressed. If it returns to zero, the playthrough has restarted.',
     },
     errors: {
       engine: 'The 3D scene could not be started.',

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, reactive } from 'vue'
+import { onBeforeUnmount, onMounted, reactive } from 'vue'
 
 export interface ControlAxis {
   x: number
@@ -17,6 +17,8 @@ interface StickState {
   y: number
 }
 
+type AxisEventName = 'move' | 'look'
+
 const emit = defineEmits<{
   move: [axis: ControlAxis]
   look: [axis: ControlAxis]
@@ -27,7 +29,7 @@ const movement = reactive<StickState>({ pointerId: null, x: 0, y: 0 })
 const look = reactive<StickState>({ pointerId: null, x: 0, y: 0 })
 const radius = 42
 
-function emitAxis(eventName: 'move' | 'look', axis: ControlAxis): void {
+function emitAxis(eventName: AxisEventName, axis: ControlAxis): void {
   if (eventName === 'move') {
     emit('move', axis)
   } else {
@@ -38,7 +40,7 @@ function emitAxis(eventName: 'move' | 'look', axis: ControlAxis): void {
 function updateStick(
   event: PointerEvent,
   state: StickState,
-  eventName: 'move' | 'look',
+  eventName: AxisEventName,
 ): void {
   const target = event.currentTarget
   if (!(target instanceof HTMLElement)) {
@@ -62,22 +64,29 @@ function updateStick(
 function startStick(
   event: PointerEvent,
   state: StickState,
-  eventName: 'move' | 'look',
+  eventName: AxisEventName,
 ): void {
   const target = event.currentTarget
-  if (!(target instanceof HTMLElement)) {
+  if (
+    !(target instanceof HTMLElement)
+    || state.pointerId !== null
+    || (event.pointerType === 'mouse' && event.button !== 0)
+  ) {
     return
   }
 
   state.pointerId = event.pointerId
-  target.setPointerCapture(event.pointerId)
+  try {
+    target.setPointerCapture(event.pointerId)
+  } catch {
+  }
   updateStick(event, state, eventName)
 }
 
 function moveStick(
   event: PointerEvent,
   state: StickState,
-  eventName: 'move' | 'look',
+  eventName: AxisEventName,
 ): void {
   if (state.pointerId !== event.pointerId) {
     return
@@ -86,16 +95,60 @@ function moveStick(
   updateStick(event, state, eventName)
 }
 
-function stopStick(state: StickState, eventName: 'move' | 'look'): void {
+function resetStick(state: StickState, eventName: AxisEventName): void {
+  if (state.pointerId === null && state.x === 0 && state.y === 0) {
+    return
+  }
   state.pointerId = null
   state.x = 0
   state.y = 0
   emitAxis(eventName, { x: 0, y: 0 })
 }
 
+function finishStick(
+  event: PointerEvent,
+  state: StickState,
+  eventName: AxisEventName,
+): void {
+  if (state.pointerId !== event.pointerId) {
+    return
+  }
+  resetStick(state, eventName)
+}
+
+function finishPointer(event: PointerEvent): void {
+  finishStick(event, movement, 'move')
+  finishStick(event, look, 'look')
+}
+
+function resetSticks(): void {
+  resetStick(movement, 'move')
+  resetStick(look, 'look')
+}
+
+function handleVisibilityChange(): void {
+  if (document.visibilityState !== 'visible') {
+    resetSticks()
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('pointerup', finishPointer)
+  window.addEventListener('pointercancel', finishPointer)
+  window.addEventListener('blur', resetSticks)
+  window.addEventListener('pagehide', resetSticks)
+  window.addEventListener('orientationchange', resetSticks)
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+})
+
 onBeforeUnmount(() => {
-  stopStick(movement, 'move')
-  stopStick(look, 'look')
+  window.removeEventListener('pointerup', finishPointer)
+  window.removeEventListener('pointercancel', finishPointer)
+  window.removeEventListener('blur', resetSticks)
+  window.removeEventListener('pagehide', resetSticks)
+  window.removeEventListener('orientationchange', resetSticks)
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
+  resetSticks()
 })
 </script>
 
@@ -107,8 +160,9 @@ onBeforeUnmount(() => {
       aria-label="Movement joystick"
       @pointerdown="startStick($event, movement, 'move')"
       @pointermove="moveStick($event, movement, 'move')"
-      @pointerup="stopStick(movement, 'move')"
-      @pointercancel="stopStick(movement, 'move')"
+      @pointerup="finishStick($event, movement, 'move')"
+      @pointercancel="finishStick($event, movement, 'move')"
+      @lostpointercapture="finishStick($event, movement, 'move')"
     >
       <span
         class="mobile-controls__thumb"
@@ -131,8 +185,9 @@ onBeforeUnmount(() => {
       aria-label="Camera joystick"
       @pointerdown="startStick($event, look, 'look')"
       @pointermove="moveStick($event, look, 'look')"
-      @pointerup="stopStick(look, 'look')"
-      @pointercancel="stopStick(look, 'look')"
+      @pointerup="finishStick($event, look, 'look')"
+      @pointercancel="finishStick($event, look, 'look')"
+      @lostpointercapture="finishStick($event, look, 'look')"
     >
       <span
         class="mobile-controls__thumb mobile-controls__thumb--look"
