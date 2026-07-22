@@ -50,7 +50,7 @@ export interface InteractionHintEvent {
   readonly objectName: string | null;
 }
 
-export interface InteractiveDoorOpenedEvent {
+export interface InteractiveDoorEvent {
   readonly objectName: string;
   readonly position?: Vector3Value;
 }
@@ -139,7 +139,8 @@ export interface GameEventMap {
 
   'interaction:door-selected': DoorSelectedEvent;
   'interaction:door-opened': DoorSelectedEvent;
-  'interaction:interactive-door-opened': InteractiveDoorOpenedEvent;
+  'interaction:interactive-door-opened': InteractiveDoorEvent;
+  'interaction:interactive-door-closed': InteractiveDoorEvent;
   'interaction:hint': InteractionHintEvent;
 
   'round:started': RoundStartedEvent;

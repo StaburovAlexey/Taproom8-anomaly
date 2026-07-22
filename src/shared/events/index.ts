@@ -10,7 +10,7 @@ export {
   type GameEventMap,
   type GraphicsQuality,
   type InteractionHintEvent,
-  type InteractiveDoorOpenedEvent,
+  type InteractiveDoorEvent,
   type LevelSource,
   type LevelAnomalyDefinition,
   type LevelAnomalyDifficulty,

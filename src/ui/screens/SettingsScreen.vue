@@ -157,16 +157,24 @@ const { t } = useI18n();
 
 <style scoped>
 .settings-screen {
-  overflow-y: auto;
-  align-content: start;
-  justify-items: center;
+  min-height: 0;
+  overflow: hidden;
   padding: max(3rem, env(safe-area-inset-top)) 1.25rem;
 }
 
 .settings-screen__panel {
   display: grid;
-  width: min(100%, 38rem);
+  max-width: 100%;
+  max-height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
   gap: 2rem;
+}
+
+.settings-screen__panel::-webkit-scrollbar {
+  display: none;
 }
 
 .settings-screen__heading {

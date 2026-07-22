@@ -68,7 +68,6 @@ const isDev = import.meta.env.DEV
 
 .pause-menu__content {
   display: grid;
-  width: min(88vw, 28rem);
   justify-items: center;
   text-align: center;
 }
