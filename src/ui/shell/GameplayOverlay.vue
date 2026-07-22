@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 
 import type { Vector2Value } from '@/shared/events'
 import GameHud from '@/ui/components/GameHud.vue'
+import GameplayNotice from '@/ui/components/GameplayNotice.vue'
 import MobileControls from '@/ui/components/MobileControls.vue'
 
 const props = defineProps<{
@@ -11,6 +12,7 @@ const props = defineProps<{
   totalLevels: number
   anomalyTargetObjectId: string | null
   interactionHint: string | null
+  protectionNoticeVisible: boolean
 }>()
 
 defineEmits<{
@@ -26,6 +28,7 @@ const interactionLabel = computed(() =>
     ? t('common.open')
     : t(props.interactionHint),
 )
+const protectionNotice = computed(() => t('game.mistakeProtected'))
 </script>
 
 <template>
@@ -35,6 +38,10 @@ const interactionLabel = computed(() =>
     :anomaly-target-object-id="anomalyTargetObjectId"
     :interaction-hint="interactionHint"
     @menu="$emit('menu')"
+  />
+  <GameplayNotice
+    :visible="protectionNoticeVisible"
+    :message="protectionNotice"
   />
   <MobileControls
     :can-interact="interactionHint !== null"

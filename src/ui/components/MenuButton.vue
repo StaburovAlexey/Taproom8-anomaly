@@ -71,6 +71,11 @@ defineEmits<{
   transform: translateY(-1px);
 }
 
+.menu-button:disabled {
+  cursor: default;
+  opacity: 0.58;
+}
+
 .menu-button:hover:not(:disabled)::before,
 .menu-button:focus-visible:not(:disabled)::before {
   transform: translateX(0);

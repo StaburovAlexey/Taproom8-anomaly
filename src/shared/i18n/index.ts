@@ -24,6 +24,9 @@ const messages = {
     },
     menu: {
       start: 'Начать',
+      rewardAd: 'Реклама: шанс на ошибку',
+      rewardLoading: 'Загрузка рекламы...',
+      rewardGranted: 'Шанс на ошибку получен',
       continue: 'Продолжить',
       settings: 'Настройки',
       about: 'Об игре',
@@ -49,6 +52,7 @@ const messages = {
       interact: 'E — открыть дверь',
       anomalyDoor: 'Есть аномалия',
       clearDoor: 'Нет аномалии',
+      mistakeProtected: 'вы ошиблись, но у вас был еще один шанс',
     },
     interaction: {
       chooseAnomalyDoor: 'Дверь: аномалия есть',
@@ -114,6 +118,9 @@ const messages = {
     },
     menu: {
       start: 'Start',
+      rewardAd: 'Ad: mistake protection',
+      rewardLoading: 'Loading ad...',
+      rewardGranted: 'Mistake protection received',
       continue: 'Continue',
       settings: 'Settings',
       about: 'About',
@@ -139,6 +146,7 @@ const messages = {
       interact: 'E — open door',
       anomalyDoor: 'There is an anomaly',
       clearDoor: 'No anomaly',
+      mistakeProtected: 'You made a mistake, but you had another chance',
     },
     interaction: {
       chooseAnomalyDoor: 'Door: there is an anomaly',

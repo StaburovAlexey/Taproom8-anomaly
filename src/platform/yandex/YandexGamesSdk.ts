@@ -15,9 +15,19 @@ interface FullscreenAdSdkCallbacks {
   readonly onError?: (error: object) => void
 }
 
+interface RewardedAdSdkCallbacks {
+  readonly onOpen?: () => void
+  readonly onRewarded?: () => void
+  readonly onClose?: (wasShown: boolean) => void
+  readonly onError?: (error: object) => void
+}
+
 interface AdvertisingApi {
   showFullscreenAdv(options?: {
     readonly callbacks?: FullscreenAdSdkCallbacks
+  }): void
+  showRewardedVideo?(options?: {
+    readonly callbacks?: RewardedAdSdkCallbacks
   }): void
 }
 
@@ -55,9 +65,21 @@ export interface FullscreenAdCallbacks {
   readonly onClose?: () => void
 }
 
+export interface RewardedAdCallbacks {
+  readonly onOpen?: () => void
+  readonly onRewarded?: () => void
+  readonly onClose?: () => void
+}
+
 export type FullscreenAdResult =
   | { readonly status: 'shown' }
   | { readonly status: 'not-shown' }
+  | { readonly status: 'unavailable' }
+  | { readonly status: 'error'; readonly error: Error }
+
+export type RewardedAdResult =
+  | { readonly status: 'rewarded' }
+  | { readonly status: 'closed' }
   | { readonly status: 'unavailable' }
   | { readonly status: 'error'; readonly error: Error }
 
@@ -82,6 +104,7 @@ export class YandexGamesSdk {
   private initialization: Promise<void> | null = null
   private readyRequest: Promise<void> | null = null
   private fullscreenAdRequest: Promise<FullscreenAdResult> | null = null
+  private rewardedAdRequest: Promise<RewardedAdResult> | null = null
   private readyReported = false
   private gameplayActive = false
 
@@ -218,6 +241,80 @@ export class YandexGamesSdk {
     return request.finally(() => {
       if (this.fullscreenAdRequest === request) {
         this.fullscreenAdRequest = null
+      }
+    })
+  }
+
+  public showRewardedAd(
+    callbacks: RewardedAdCallbacks = {},
+  ): Promise<RewardedAdResult> {
+    if (this.rewardedAdRequest !== null) {
+      return this.rewardedAdRequest
+    }
+
+    const advertising = this.sdk?.adv
+    const showRewardedVideo = advertising?.showRewardedVideo
+    if (showRewardedVideo === undefined) {
+      return Promise.resolve({ status: 'unavailable' })
+    }
+
+    const request = new Promise<RewardedAdResult>((resolve) => {
+      let settled = false
+      let closed = false
+      let rewarded = false
+      const notifyClosed = (): void => {
+        if (closed) {
+          return
+        }
+        closed = true
+        callbacks.onClose?.()
+      }
+      const notifyRewarded = (): void => {
+        if (rewarded) {
+          return
+        }
+        rewarded = true
+        callbacks.onRewarded?.()
+      }
+      const settle = (result: RewardedAdResult): void => {
+        if (settled) {
+          return
+        }
+        settled = true
+        resolve(result)
+      }
+
+      try {
+        showRewardedVideo.call(advertising, {
+          callbacks: {
+            onOpen: () => callbacks.onOpen?.(),
+            onRewarded: notifyRewarded,
+            onClose: () => {
+              notifyClosed()
+              settle({ status: rewarded ? 'rewarded' : 'closed' })
+            },
+            onError: (cause) => {
+              notifyClosed()
+              settle({
+                status: 'error',
+                error: asError(cause, 'Yandex Games rewarded ad failed.'),
+              })
+            },
+          },
+        })
+      } catch (cause: unknown) {
+        notifyClosed()
+        settle({
+          status: 'error',
+          error: asError(cause, 'Yandex Games rewarded ad failed.'),
+        })
+      }
+    })
+
+    this.rewardedAdRequest = request
+    return request.finally(() => {
+      if (this.rewardedAdRequest === request) {
+        this.rewardedAdRequest = null
       }
     })
   }

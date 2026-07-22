@@ -10,12 +10,17 @@ import { RoundDifficulty } from './RoundDifficulty';
 
 export interface AnswerEvaluation {
   readonly isCorrect: boolean;
+  readonly mistakeProtected: boolean;
   readonly answeredHasAnomaly: boolean;
   readonly expectedHasAnomaly: boolean;
   readonly previousLevel: GameLevel;
   readonly currentLevel: GameLevel | null;
   readonly completed: boolean;
   readonly resetToFirstLevel: boolean;
+}
+
+export interface AnswerEvaluationOptions {
+  readonly protectMistake?: boolean;
 }
 
 export class GameSessionCompletedError extends Error {
@@ -80,7 +85,10 @@ export class GameSession {
     ));
   }
 
-  public evaluateAnswer(answeredHasAnomaly: boolean): AnswerEvaluation {
+  public evaluateAnswer(
+    answeredHasAnomaly: boolean,
+    options: AnswerEvaluationOptions = {},
+  ): AnswerEvaluation {
     const round = this.currentRound;
 
     if (round === null) {
@@ -88,22 +96,24 @@ export class GameSession {
     }
 
     const isCorrect = answeredHasAnomaly === round.hasAnomaly;
+    const mistakeProtected = !isCorrect && options.protectMistake === true;
     const previousLevel = round.level;
 
     if (isCorrect) {
       this.currentIndex += 1;
-    } else {
+    } else if (!mistakeProtected) {
       this.currentIndex = 0;
     }
 
     return Object.freeze({
       isCorrect,
+      mistakeProtected,
       answeredHasAnomaly,
       expectedHasAnomaly: round.hasAnomaly,
       previousLevel,
       currentLevel: this.currentLevel,
       completed: this.completed,
-      resetToFirstLevel: !isCorrect,
+      resetToFirstLevel: !isCorrect && !mistakeProtected,
     });
   }
 

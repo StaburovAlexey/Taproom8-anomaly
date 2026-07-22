@@ -13,6 +13,8 @@ export type MenuScreen = 'home' | 'pause'
 
 export type SessionUiState = 'none' | 'active' | 'completed'
 
+export type RewardProtectionStatus = 'available' | 'loading' | 'granted'
+
 export type CinematicTransitionPhase =
   | 'idle'
   | 'covering'

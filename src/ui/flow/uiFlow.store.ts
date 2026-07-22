@@ -9,6 +9,7 @@ import type {
   CinematicTransitionIntent,
   CinematicTransitionPhase,
   MenuScreen,
+  RewardProtectionStatus,
   SessionUiState,
   UiScreen,
 } from './uiFlow.types'
@@ -17,6 +18,7 @@ interface UiFlowState {
   screen: UiScreen
   settingsReturnTo: MenuScreen
   session: SessionUiState
+  rewardProtectionStatus: RewardProtectionStatus
   loadingProgress: number
   currentLevel: number
   totalLevels: number
@@ -24,6 +26,7 @@ interface UiFlowState {
   devAnomalyOptions: DevAnomalyOption[]
   devNextAnomalySelection: DevNextAnomalySelection
   interactionHint: string | null
+  protectionNoticeVisible: boolean
   pointerLocked: boolean
   transitionPhase: CinematicTransitionPhase
   transitionIntent: CinematicTransitionIntent | null
@@ -34,6 +37,7 @@ export const useUiFlowStore = defineStore('ui-flow', {
     screen: 'loading',
     settingsReturnTo: 'home',
     session: 'none',
+    rewardProtectionStatus: 'available',
     loadingProgress: 0,
     currentLevel: 0,
     totalLevels: FINAL_GAME_LEVEL,
@@ -41,6 +45,7 @@ export const useUiFlowStore = defineStore('ui-flow', {
     devAnomalyOptions: [],
     devNextAnomalySelection: { kind: 'random' },
     interactionHint: null,
+    protectionNoticeVisible: false,
     pointerLocked: false,
     transitionPhase: 'idle',
     transitionIntent: null,
@@ -67,6 +72,7 @@ export const useUiFlowStore = defineStore('ui-flow', {
       this.session = 'none'
       this.anomalyTargetObjectId = null
       this.interactionHint = null
+      this.protectionNoticeVisible = false
       this.pointerLocked = false
     },
     showGameplay(): void {
@@ -76,6 +82,7 @@ export const useUiFlowStore = defineStore('ui-flow', {
     showPause(): void {
       this.screen = 'pause'
       this.interactionHint = null
+      this.protectionNoticeVisible = false
       this.pointerLocked = false
     },
     openSettings(): void {
@@ -115,8 +122,31 @@ export const useUiFlowStore = defineStore('ui-flow', {
     setInteractionHint(hint: string | null): void {
       this.interactionHint = hint
     },
+    setProtectionNoticeVisible(visible: boolean): void {
+      this.protectionNoticeVisible = visible
+    },
     setPointerLocked(locked: boolean): void {
       this.pointerLocked = locked
+    },
+    beginRewardedAd(): boolean {
+      if (this.rewardProtectionStatus !== 'available') {
+        return false
+      }
+      this.rewardProtectionStatus = 'loading'
+      return true
+    },
+    finishRewardedAd(rewarded: boolean): void {
+      if (this.rewardProtectionStatus !== 'loading') {
+        return
+      }
+      this.rewardProtectionStatus = rewarded ? 'granted' : 'available'
+    },
+    takeMistakeProtection(): boolean {
+      if (this.rewardProtectionStatus !== 'granted') {
+        return false
+      }
+      this.rewardProtectionStatus = 'available'
+      return true
     },
     beginTransition(intent: CinematicTransitionIntent): boolean {
       if (this.transitionPhase !== 'idle') {

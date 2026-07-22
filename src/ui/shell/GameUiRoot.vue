@@ -28,7 +28,9 @@ const {
   devAnomalyOptions,
   devNextAnomalySelection,
   interactionHint,
+  protectionNoticeVisible,
   transitionVisible,
+  rewardProtectionStatus,
 } = storeToRefs(flow)
 const { brightness, language, graphics, volume } = storeToRefs(settings)
 const { isFullscreen, isSupported, toggle: toggleFullscreen } = useFullscreen()
@@ -42,6 +44,7 @@ const { isFullscreen, isSupported, toggle: toggleFullscreen } = useFullscreen()
       :total-levels="totalLevels"
       :anomaly-target-object-id="anomalyTargetObjectId"
       :interaction-hint="interactionHint"
+      :protection-notice-visible="protectionNoticeVisible"
       @menu="controller.openPause"
       @move="controller.updateMobileMovement"
       @look="controller.updateMobileLook"
@@ -66,7 +69,9 @@ const { isFullscreen, isSupported, toggle: toggleFullscreen } = useFullscreen()
       <HomeMenuScreen
         v-else-if="screen === 'home'"
         key="home"
+        :reward-protection-status="rewardProtectionStatus"
         @start="controller.startSession"
+        @reward="controller.showRewardedProtectionAd"
         @settings="flow.openSettings()"
         @about="flow.showAbout()"
       />

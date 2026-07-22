@@ -53,6 +53,7 @@ export class GameCoordinator {
   private nextAnomalySelection: DevNextAnomalySelection = { kind: 'random' }
   private session: GameSession | null = null
   private resolving = false
+  private mistakeProtectionAvailable = false
 
   public constructor(
     private readonly eventBus: EventBus<GameEventMap> = gameEventBus,
@@ -64,7 +65,9 @@ export class GameCoordinator {
     }
 
     this.cleanups.push(
-      this.eventBus.on('session:start-requested', () => this.startSession()),
+      this.eventBus.on('session:start-requested', ({ mistakeProtection }) => {
+        this.startSession(mistakeProtection)
+      }),
       this.eventBus.on('level:loaded', ({ anomalyDefinitions }) => {
         this.anomalyDefinitions = [...anomalyDefinitions]
         this.emitDevAnomalyOptions()
@@ -90,10 +93,11 @@ export class GameCoordinator {
     this.cleanups.length = 0
   }
 
-  private startSession(): void {
+  private startSession(mistakeProtection: boolean): void {
     this.anomalyManager.reset()
     this.session = this.generateSession()
     this.resolving = false
+    this.mistakeProtectionAvailable = mistakeProtection
     AnalyticsManager.goal('session_started')
     this.startCurrentRound()
   }
@@ -102,6 +106,7 @@ export class GameCoordinator {
     this.anomalyManager.reset()
     this.session = null
     this.resolving = false
+    this.mistakeProtectionAvailable = false
     this.resetDevAnomalySelection()
   }
 
@@ -133,10 +138,15 @@ export class GameCoordinator {
     }
 
     this.resolving = true
-    const result = this.session.evaluateAnswer(answer)
+    const result = this.session.evaluateAnswer(answer, {
+      protectMistake: this.mistakeProtectionAvailable,
+    })
+    if (result.mistakeProtected) {
+      this.mistakeProtectionAvailable = false
+    }
     this.anomalyManager.reset()
 
-    if (!result.isCorrect) {
+    if (!result.isCorrect && !result.mistakeProtected) {
       this.session = this.generateSession()
     }
 
@@ -148,6 +158,7 @@ export class GameCoordinator {
 
     this.eventBus.emit('round:resolved', {
       correct: result.isCorrect,
+      mistakeProtected: result.mistakeProtected,
       selectedAnswer: result.answeredHasAnomaly,
       nextLevel: result.currentLevel ?? result.previousLevel,
       completed: result.completed,

@@ -81,4 +81,32 @@ describe('uiFlow store', () => {
       anomalyId: option.id,
     })
   })
+
+  it('grants and takes at most one rewarded mistake protection', () => {
+    const flow = useUiFlowStore()
+
+    expect(flow.beginRewardedAd()).toBe(true)
+    expect(flow.beginRewardedAd()).toBe(false)
+    flow.finishRewardedAd(true)
+    expect(flow.rewardProtectionStatus).toBe('granted')
+    expect(flow.beginRewardedAd()).toBe(false)
+
+    expect(flow.takeMistakeProtection()).toBe(true)
+    expect(flow.takeMistakeProtection()).toBe(false)
+    expect(flow.rewardProtectionStatus).toBe('available')
+  })
+
+  it('clears the protection notice outside gameplay', () => {
+    const flow = useUiFlowStore()
+
+    flow.showGameplay()
+    flow.setProtectionNoticeVisible(true)
+    expect(flow.protectionNoticeVisible).toBe(true)
+
+    flow.showPause()
+    expect(flow.protectionNoticeVisible).toBe(false)
+    flow.setProtectionNoticeVisible(true)
+    flow.showHome()
+    expect(flow.protectionNoticeVisible).toBe(false)
+  })
 })
