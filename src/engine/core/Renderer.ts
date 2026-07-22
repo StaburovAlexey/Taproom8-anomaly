@@ -18,6 +18,12 @@ export interface RendererOptions {
 const BASE_EXPOSURE = 0.8;
 const MIN_BRIGHTNESS = 0.5;
 const MAX_BRIGHTNESS = 1.5;
+const RESOLUTION_SETTINGS: Readonly<
+  Record<GraphicsQuality, { readonly height: number; readonly scale: number }>
+> = {
+  normal: { height: 480, scale: 0.6 },
+  potato: { height: 360, scale: 0.5 },
+};
 
 export class Renderer {
   public readonly instance: WebGLRenderer;
@@ -90,6 +96,7 @@ export class Renderer {
   }
 
   private applyQuality(): void {
-    this.pipeline.setResolutionHeight(this.quality === 'normal' ? 480 : 360);
+    const settings = RESOLUTION_SETTINGS[this.quality];
+    this.pipeline.setResolution(settings.height, settings.scale);
   }
 }

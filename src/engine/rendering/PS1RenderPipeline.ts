@@ -64,6 +64,7 @@ export class PS1RenderPipeline {
   private readonly material: ShaderMaterial;
   private readonly resolution = new Vector2(1, 1);
   private resolutionHeight = 240;
+  private resolutionScale = 0.6;
 
   public constructor() {
     this.target.texture.generateMipmaps = false;
@@ -84,13 +85,15 @@ export class PS1RenderPipeline {
     this.outputScene.add(output);
   }
 
-  public setResolutionHeight(height: number): void {
+  public setResolution(height: number, scale: number): void {
     this.resolutionHeight = Math.max(1, Math.round(height));
+    this.resolutionScale = Math.min(1, Math.max(0.1, scale));
   }
 
   public setSize(displayWidth: number, displayHeight: number): void {
     const aspect = displayWidth / Math.max(1, displayHeight);
-    const height = Math.min(displayHeight, this.resolutionHeight);
+    const scaledHeight = Math.max(1, Math.round(displayHeight * this.resolutionScale));
+    const height = Math.min(scaledHeight, this.resolutionHeight);
     const width = Math.max(1, Math.round(height * aspect));
     this.target.setSize(width, height);
     this.resolution.set(width, height);
