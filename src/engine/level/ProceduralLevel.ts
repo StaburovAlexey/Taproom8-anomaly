@@ -20,6 +20,11 @@ import {
   getDoorDefinition,
   LEVEL_OBJECT_NAMES,
 } from './LevelContract';
+import {
+  FLIP_FLOP_ROOT_NAME,
+  FLIP_TEXTURE_ROOT_NAME,
+} from './AnomalyDiscovery';
+import { SPRITE_ANOMALY_ROOT_NAME } from './SpriteAnomalyContract';
 
 export interface ProceduralLevelResult {
   readonly root: Group;
@@ -187,7 +192,20 @@ export function createProceduralLevel(): ProceduralLevelResult {
 
   const anomalyObjects = new Group();
   anomalyObjects.name = LEVEL_OBJECT_NAMES.anomalyObjects;
-  anomalyObjects.add(createChair(), createLamp(), createPicture());
+  const removalObjects = new Group();
+  removalObjects.name = FLIP_FLOP_ROOT_NAME;
+  const chair = createChair();
+  chair.name = 'Chair01_easy';
+  const lamp = createLamp();
+  lamp.name = 'Lamp01_medium';
+  const picture = createPicture();
+  picture.name = 'Picture01_hard';
+  removalObjects.add(chair, lamp, picture);
+  const textureObjects = new Group();
+  textureObjects.name = FLIP_TEXTURE_ROOT_NAME;
+  const spritePoints = new Group();
+  spritePoints.name = SPRITE_ANOMALY_ROOT_NAME;
+  anomalyObjects.add(removalObjects, textureObjects, spritePoints);
   gameplay.add(anomalyObjects);
 
   const lights = new Group();

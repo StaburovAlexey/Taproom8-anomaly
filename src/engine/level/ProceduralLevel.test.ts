@@ -27,13 +27,13 @@ describe('procedural level contract', () => {
     const registry = new ObjectRegistry();
     registry.registerTree(level.root);
     const presenter = new RemovalAnomalyPresenter(registry);
-    const chair = registry.require('Chair01');
+    const chair = registry.require('Chair01_easy');
 
     presenter.apply({
       level: 1,
       difficulty: 'Easy',
-      anomalyId: 'flip_flop:Chair01:removed',
-      anomalyTargetObjectId: 'Chair01',
+      anomalyId: 'flip_flop:Chair01_easy:removed',
+      anomalyTargetObjectId: 'Chair01_easy',
       hasAnomaly: true,
     });
     expect(chair.visible).toBe(false);

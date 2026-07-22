@@ -87,6 +87,11 @@ interface ActivePlayback {
   readonly soundId: SoundId;
   readonly source: AudioBufferSourceNode;
   readonly gain: GainNode;
+  readonly startedAtContextTime: number;
+  readonly startOffsetSeconds: number;
+  readonly bufferDurationSeconds: number;
+  readonly playbackRate: number;
+  readonly loop: boolean;
   readonly filter?: BiquadFilterNode;
   readonly panner?: PannerNode;
 }
@@ -163,6 +168,7 @@ export class AudioManager {
   private speakerPositions: readonly SpatialPosition[] = [];
   private speakerToken = 0;
   private speakerMusicEnabled = false;
+  private speakerMusicOffsetSeconds = 0;
 
   private constructor(eventBus: EventBus<GameEventMap>) {
     this.bindEvents(eventBus);
@@ -499,6 +505,15 @@ export class AudioManager {
       (filter ?? gain).connect(categoryGain);
     }
 
+    const delaySeconds = nonNegative(options.delaySeconds ?? 0, 0);
+    const startedAtContextTime = context.currentTime + delaySeconds;
+    const requestedStartOffset = nonNegative(
+      options.startOffsetSeconds ?? 0,
+      0,
+    );
+    const startOffsetSeconds = source.loop && buffer.duration > 0
+      ? requestedStartOffset % buffer.duration
+      : Math.min(Math.max(0, buffer.duration - 0.001), requestedStartOffset);
     const playbackId = this.nextPlaybackId;
     this.nextPlaybackId += 1;
     const playback: ActivePlayback = {
@@ -506,22 +521,20 @@ export class AudioManager {
       soundId: id,
       source,
       gain,
+      startedAtContextTime,
+      startOffsetSeconds,
+      bufferDurationSeconds: buffer.duration,
+      playbackRate: source.playbackRate.value,
+      loop: source.loop,
       ...(filter === null ? {} : { filter }),
       ...(panner === null ? {} : { panner }),
     };
     this.activePlaybacks.set(playbackId, playback);
     source.onended = () => this.cleanupPlayback(playbackId);
-    onStarted?.(playbackId);
 
     try {
-      const startOffset = Math.min(
-        Math.max(0, buffer.duration - 0.001),
-        nonNegative(options.startOffsetSeconds ?? 0, 0),
-      );
-      source.start(
-        context.currentTime + nonNegative(options.delaySeconds ?? 0, 0),
-        startOffset,
-      );
+      source.start(startedAtContextTime, startOffsetSeconds);
+      onStarted?.(playbackId);
       return playbackId;
     } catch {
       this.cleanupPlayback(playbackId);
@@ -592,6 +605,7 @@ export class AudioManager {
     }
     this.activePlaybacks.delete(playbackId);
     this.activeFootsteps.delete(playbackId);
+    this.speakerPlaybacks.delete(playbackId);
     playback.source.onended = null;
     playback.source.disconnect();
     playback.gain.disconnect();
@@ -731,7 +745,11 @@ export class AudioManager {
     for (const position of this.speakerPositions) {
       void this.playInternal(
         'speaker_music',
-        { loop: true, volume: 0.7 },
+        {
+          loop: true,
+          volume: 0.7,
+          startOffsetSeconds: this.speakerMusicOffsetSeconds,
+        },
         {
           position,
           panningModel: 'HRTF',
@@ -748,6 +766,7 @@ export class AudioManager {
 
   private stopSpeakerMusicInternal(fadeOutSeconds = 0): void {
     this.speakerMusicEnabled = false;
+    this.speakerMusicOffsetSeconds = 0;
     this.speakerToken += 1;
     for (const playbackId of this.speakerPlaybacks) {
       this.stopInternal(playbackId, fadeOutSeconds);
@@ -755,12 +774,55 @@ export class AudioManager {
     this.speakerPlaybacks.clear();
   }
 
+  private pauseSpeakerMusicInternal(fadeOutSeconds = 0): void {
+    if (!this.speakerMusicEnabled) {
+      return;
+    }
+
+    const playbackId = this.speakerPlaybacks.values().next().value;
+    if (typeof playbackId === 'number') {
+      this.speakerMusicOffsetSeconds = this.getPlaybackOffsetSeconds(
+        playbackId,
+        fadeOutSeconds,
+      );
+    }
+    this.speakerMusicEnabled = false;
+    this.speakerToken += 1;
+    for (const id of this.speakerPlaybacks) {
+      this.stopInternal(id, fadeOutSeconds);
+    }
+    this.speakerPlaybacks.clear();
+  }
+
+  private getPlaybackOffsetSeconds(
+    playbackId: PlaybackId,
+    additionalSeconds = 0,
+  ): number {
+    const playback = this.activePlaybacks.get(playbackId);
+    const context = this.context;
+    if (playback === undefined || context === null) {
+      return 0;
+    }
+
+    const elapsedSeconds = Math.max(
+      0,
+      context.currentTime
+        + nonNegative(additionalSeconds, 0)
+        - playback.startedAtContextTime,
+    ) * playback.playbackRate;
+    const offset = playback.startOffsetSeconds + elapsedSeconds;
+    if (playback.loop && playback.bufferDurationSeconds > 0) {
+      return offset % playback.bufferDurationSeconds;
+    }
+    return Math.min(offset, playback.bufferDurationSeconds);
+  }
+
   private setSpeakerPositionsInternal(
     positions: readonly SpatialPosition[],
   ): void {
     const shouldRestart = this.speakerMusicEnabled;
     if (shouldRestart) {
-      this.stopSpeakerMusicInternal(0);
+      this.pauseSpeakerMusicInternal();
     }
     this.speakerPositions = positions.map((position) => ({ ...position }));
     if (shouldRestart) {
@@ -930,11 +992,13 @@ export class AudioManager {
       }),
       eventBus.on('game:pause-requested', () => {
         this.stopFootstepsInternal();
-        this.stopAmbientInternal(undefined, 0.15);
-        this.stopSpeakerMusicInternal(0.15);
+        this.pauseSpeakerMusicInternal(0.08);
         void this.playInternal('menu_back');
       }),
       eventBus.on('session:abandon-requested', () => {
+        this.stopFootstepsInternal();
+        this.stopAmbientInternal(undefined, 0.15);
+        this.stopSpeakerMusicInternal(0.15);
         this.stopSoundInternal('menu_music', 0);
         void this.playInternal('menu_music');
       }),
@@ -970,11 +1034,26 @@ export class AudioManager {
           void this.playInternal('door_open', { startOffsetSeconds: 0.96 });
         }
       }),
+      eventBus.on('interaction:interactive-door-closed', ({ position }) => {
+        if (position !== undefined) {
+          void this.playSpatialInternal('door_close', position, {
+            volume: 1.1,
+            maxDistance: 12,
+            startOffsetSeconds: 0.06,
+          });
+        } else {
+          void this.playInternal('door_close', { startOffsetSeconds: 0.06 });
+        }
+      }),
       eventBus.on('round:started', () => {
         void this.startAmbientInternal('ambient_room');
       }),
-      eventBus.on('round:resolved', () => {
+      eventBus.on('round:resolved', ({ completed }) => {
         this.stopFootstepsInternal();
+        if (completed) {
+          this.stopAmbientInternal(undefined, 0.15);
+          this.stopSpeakerMusicInternal(0.15);
+        }
       }),
     );
   }

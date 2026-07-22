@@ -95,8 +95,6 @@ describe('GameSessionGenerator', () => {
       RoundDifficulty.Hard,
       RoundDifficulty.None,
       RoundDifficulty.None,
-      RoundDifficulty.Hard,
-      RoundDifficulty.None,
     ]);
   });
 
@@ -104,7 +102,7 @@ describe('GameSessionGenerator', () => {
     const configs = GAME_LEVELS.map((level) => ({
       level,
       weights: weightsFor(
-        level === 0 || level === 10
+        level === 0 || level === 8
           ? RoundDifficulty.None
           : RoundDifficulty.Hard,
       ),
@@ -118,7 +116,7 @@ describe('GameSessionGenerator', () => {
     expect(session.rounds.at(-1)?.difficulty).toBe(RoundDifficulty.None);
   });
 
-  it('generates eleven deterministic weighted rounds from an injected RNG', () => {
+  it('generates nine deterministic weighted rounds from an injected RNG', () => {
     const first = new GameSessionGenerator({
       anomalyPools: buildPools(),
       random: new SeededRandom('session-seed'),
@@ -135,7 +133,7 @@ describe('GameSessionGenerator', () => {
         round.anomaly?.id ?? null,
       ]);
 
-    expect(first.rounds).toHaveLength(11);
+    expect(first.rounds).toHaveLength(9);
     expect(first.rounds[0]).toMatchObject({
       level: 0,
       difficulty: RoundDifficulty.None,
@@ -147,17 +145,38 @@ describe('GameSessionGenerator', () => {
 
   it('does not repeat an anomaly before its shuffle bag is exhausted', () => {
     const session = new GameSessionGenerator({
-      anomalyPools: buildPools(11),
+      anomalyPools: buildPools(9),
       levelConfigs: configsFor(RoundDifficulty.Easy),
       random: new SeededRandom('unique-anomalies'),
     }).generate();
     const ids = session.rounds.map((round) => round.anomaly?.id);
 
-    expect(new Set(ids).size).toBe(11);
+    expect(new Set(ids).size).toBe(9);
   });
 });
 
 describe('GameSession progress', () => {
+  it('can override the current non-zero round without changing progress', () => {
+    const session = new GameSessionGenerator({
+      anomalyPools: buildPools(),
+      levelConfigs: configsFor(RoundDifficulty.None),
+      random: new SeededRandom('override-round'),
+    }).generate();
+    const anomaly = fakeAnomaly('forced_easy', RoundDifficulty.Easy);
+
+    session.evaluateAnswer(false);
+    session.overrideCurrentRound(anomaly);
+
+    expect(session.currentRound).toMatchObject({
+      level: 1,
+      difficulty: RoundDifficulty.Easy,
+      anomaly,
+      hasAnomaly: true,
+    });
+    expect(session.evaluateAnswer(true).isCorrect).toBe(true);
+    expect(session.currentLevel).toBe(2);
+  });
+
   it('evaluates has-anomaly answers and resets a mistake to level one', () => {
     const session = new GameSessionGenerator({
       anomalyPools: buildPools(10),
@@ -192,14 +211,14 @@ describe('GameSession progress', () => {
     expect(session.evaluateAnswer(false).isCorrect).toBe(true);
   });
 
-  it('completes after eleven correct answers and can restart in memory', () => {
+  it('completes after nine correct answers and can restart in memory', () => {
     const session = new GameSessionGenerator({
       anomalyPools: buildPools(10),
       levelConfigs: configsFor(RoundDifficulty.Easy),
       random: new SeededRandom(42),
     }).generate();
 
-    for (let answer = 0; answer < 11; answer += 1) {
+    for (let answer = 0; answer < 9; answer += 1) {
       session.evaluateAnswer(true);
     }
 

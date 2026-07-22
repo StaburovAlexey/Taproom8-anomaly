@@ -1,13 +1,16 @@
 import type { Anomaly } from '../anomaly/Anomaly';
 import {
+  GAME_LEVELS,
+  type GameLevel,
+} from '../../shared/config/gameplay';
+import {
   isAnomalyDifficulty,
   RoundDifficulty,
 } from './RoundDifficulty';
 
-export const GAME_LEVELS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
 export const GAME_SESSION_ROUND_COUNT = GAME_LEVELS.length;
 
-export type GameLevel = (typeof GAME_LEVELS)[number];
+export { GAME_LEVELS, type GameLevel };
 
 export interface GameRound {
   readonly level: GameLevel;

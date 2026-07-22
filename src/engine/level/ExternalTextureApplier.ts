@@ -1,11 +1,16 @@
 import { Mesh, MeshBasicMaterial, type Object3D } from 'three'
 
 import { AssetManager } from '../loaders/AssetManager'
+import type { LevelAnomalyDefinition } from '../../shared/events'
 import { applyPS1TextureStyle } from '../rendering/PS1Style'
 import {
   ANOMALY_TEXTURE_USER_DATA_KEY,
-  TEXTURE_ANOMALY_DEFINITIONS,
+  createTextureAnomalyUrls,
 } from './TextureAnomalyContract'
+import {
+  FLIP_FLOP_ROOT_NAME,
+  FLIP_TEXTURE_ROOT_NAME,
+} from './AnomalyDiscovery'
 
 const TEXTURE_DIRECTORY = '/assets/models/textures/'
 const ANOMALY_ATLAS_URL = `${TEXTURE_DIRECTORY}FlipFlopObj.png`
@@ -76,15 +81,18 @@ function getTextureUrl(objectName: string): string | undefined {
 export async function applyExternalTextures(
   root: Object3D,
   assetManager: AssetManager,
+  anomalyDefinitions: readonly LevelAnomalyDefinition[],
   onProgress?: (loaded: number, total: number, url?: string) => void,
-): Promise<void> {
+): Promise<ReadonlySet<string>> {
   const meshesByUrl = new Map<string, Mesh[]>()
   const anomalyMeshesByUrl = new Map<string, Mesh[]>()
   const requiredTextureUrls = new Set<string>()
   const anomalyMeshes = new Set<Mesh>()
   const textureSwapMeshes = new Set<Mesh>()
-  const anomalyObjects = root.getObjectByName('FlipFlopObj')
-  const textureAnomalyObjects = root.getObjectByName('FlipTextureObj')
+  const textureTargetsByUrl = new Map<string, Set<string>>()
+  const unavailableTextureTargets = new Set<string>()
+  const anomalyObjects = root.getObjectByName(FLIP_FLOP_ROOT_NAME)
+  const textureAnomalyObjects = root.getObjectByName(FLIP_TEXTURE_ROOT_NAME)
 
   anomalyObjects?.traverse((object) => {
     if (object instanceof Mesh) {
@@ -97,7 +105,10 @@ export async function applyExternalTextures(
     requiredTextureUrls.add(ANOMALY_ATLAS_URL)
   }
 
-  for (const definition of TEXTURE_ANOMALY_DEFINITIONS) {
+  for (const definition of anomalyDefinitions) {
+    if (definition.kind !== 'texture-swap') {
+      continue
+    }
     const target = textureAnomalyObjects?.getObjectByName(
       definition.targetObjectId,
     )
@@ -112,10 +123,16 @@ export async function applyExternalTextures(
       }
     })
     if (meshes.length > 0) {
-      meshesByUrl.set(definition.normalTextureUrl, meshes)
-      anomalyMeshesByUrl.set(definition.anomalyTextureUrl, meshes)
-      requiredTextureUrls.add(definition.normalTextureUrl)
-      requiredTextureUrls.add(definition.anomalyTextureUrl)
+      const urls = createTextureAnomalyUrls(definition.assetBaseName)
+      meshesByUrl.set(urls.normalTextureUrl, meshes)
+      anomalyMeshesByUrl.set(urls.anomalyTextureUrl, meshes)
+      requiredTextureUrls.add(urls.normalTextureUrl)
+      requiredTextureUrls.add(urls.anomalyTextureUrl)
+      for (const url of [urls.normalTextureUrl, urls.anomalyTextureUrl]) {
+        const targets = textureTargetsByUrl.get(url) ?? new Set<string>()
+        targets.add(definition.targetObjectId)
+        textureTargetsByUrl.set(url, targets)
+      }
     }
   }
 
@@ -157,9 +174,11 @@ export async function applyExternalTextures(
         for (const mesh of anomalyMeshesByUrl.get(url) ?? []) {
           mesh.userData[ANOMALY_TEXTURE_USER_DATA_KEY] = texture
         }
-      } catch (error: unknown) {
+      } catch {
         if (requiredTextureUrls.has(url)) {
-          throw error
+          for (const targetId of textureTargetsByUrl.get(url) ?? []) {
+            unavailableTextureTargets.add(targetId)
+          }
         }
       } finally {
         loaded += 1
@@ -167,4 +186,5 @@ export async function applyExternalTextures(
       }
     }),
   )
+  return unavailableTextureTargets
 }

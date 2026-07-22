@@ -30,6 +30,8 @@ import { LevelNumberPresenter } from '../level/LevelNumberPresenter';
 import { ObjectRegistry } from '../level/ObjectRegistry';
 import { RemovalAnomalyPresenter } from '../level/RemovalAnomalyPresenter';
 import { TextureAnomalyPresenter } from '../level/TextureAnomalyPresenter';
+import { SpriteAnomalyPresenter } from '../level/SpriteAnomalyPresenter';
+import { SPRITE_ANOMALY_ROOT_NAME } from '../level/SpriteAnomalyContract';
 import { Player } from '../player/Player';
 
 export interface GameSceneOptions {
@@ -64,6 +66,7 @@ export class GameScene implements ManagedScene {
   public readonly registry = new ObjectRegistry();
 
   private readonly eventBus: EventBus<GameEventMap>;
+  private readonly assetManager: AssetManager;
   private readonly levelLoader: LevelLoader;
   private readonly levelUrl: string;
   private readonly canvas: HTMLCanvasElement;
@@ -76,6 +79,7 @@ export class GameScene implements ManagedScene {
   private interactions: InteractionManager | null = null;
   private anomalyPresenter: RemovalAnomalyPresenter | null = null;
   private textureAnomalyPresenter: TextureAnomalyPresenter | null = null;
+  private spriteAnomalyPresenter: SpriteAnomalyPresenter | null = null;
   private levelNumberPresenter: LevelNumberPresenter | null = null;
   private pendingRound: RoundStartedEvent | null = null;
   private active = false;
@@ -89,6 +93,7 @@ export class GameScene implements ManagedScene {
     options: GameSceneOptions = {},
   ) {
     this.eventBus = eventBus;
+    this.assetManager = assetManager;
     this.canvas = canvas;
     this.levelUrl = options.levelUrl ?? DEFAULT_LEVEL_URL;
     this.camera = new PerspectiveCamera(
@@ -150,11 +155,20 @@ export class GameScene implements ManagedScene {
 
     this.anomalyPresenter = new RemovalAnomalyPresenter(this.registry);
     this.textureAnomalyPresenter = new TextureAnomalyPresenter(this.registry);
+    if (this.registry.has(SPRITE_ANOMALY_ROOT_NAME)) {
+      this.spriteAnomalyPresenter = new SpriteAnomalyPresenter(
+        this.scene,
+        this.registry,
+        this.assetManager,
+      );
+      await this.spriteAnomalyPresenter.load();
+    }
     this.levelNumberPresenter = new LevelNumberPresenter(this.registry);
     if (this.pendingRound !== null) {
       this.interactions.startRound(this.pendingRound);
       this.anomalyPresenter.apply(this.pendingRound);
       this.textureAnomalyPresenter.apply(this.pendingRound);
+      this.spriteAnomalyPresenter?.apply(this.pendingRound);
       this.levelNumberPresenter.setLevel(this.pendingRound.level);
     }
     return level;
@@ -233,6 +247,8 @@ export class GameScene implements ManagedScene {
     this.anomalyPresenter = null;
     this.textureAnomalyPresenter?.dispose();
     this.textureAnomalyPresenter = null;
+    this.spriteAnomalyPresenter?.dispose();
+    this.spriteAnomalyPresenter = null;
     this.levelNumberPresenter?.dispose();
     this.levelNumberPresenter = null;
     this.interactions?.dispose();
@@ -256,6 +272,7 @@ export class GameScene implements ManagedScene {
     this.interactions?.startRound(round);
     this.anomalyPresenter?.apply(round);
     this.textureAnomalyPresenter?.apply(round);
+    this.spriteAnomalyPresenter?.apply(round);
     this.levelNumberPresenter?.setLevel(round.level);
     this.emitSpeakerSources();
     if (this.player !== null) {

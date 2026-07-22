@@ -23,6 +23,7 @@ import {
   LEVEL_OBJECT_NAMES,
 } from '../level/LevelContract';
 import {
+  AUTO_CLOSE_DOOR_005_ANOMALY,
   LOCKED_INTERACTIVE_DOOR_PANEL_IDS,
   UNLOCK_DOOR_001_ANOMALY,
 } from '../level/DoorAnomalyContract';
@@ -38,6 +39,7 @@ interface DoorRotationAnimation {
   readonly target: Object3D;
   readonly startRotation: number;
   readonly endRotation: number;
+  readonly collisionEnabledOnComplete: boolean;
   elapsedSeconds: number;
 }
 
@@ -63,6 +65,8 @@ export class InteractionManager {
   private readonly originalColors = new Map<Mesh, Color | Color[]>();
   private readonly openedInteractiveDoors = new Set<Object3D>();
   private readonly doorAnimations = new Map<Object3D, DoorRotationAnimation>();
+  private readonly scheduledDoorClosures = new Map<Object3D, number>();
+  private autoCloseDoorPanelId: string | null = null;
   private cooldownRemaining = 0;
   private enabled = false;
 
@@ -129,6 +133,7 @@ export class InteractionManager {
   public update(deltaSeconds: number, input: InputFrame): void {
     this.cooldownRemaining = Math.max(0, this.cooldownRemaining - deltaSeconds);
     this.updateDoorAnimations(deltaSeconds);
+    this.updateScheduledDoorClosures(deltaSeconds);
     if (!this.enabled) {
       return;
     }
@@ -159,9 +164,16 @@ export class InteractionManager {
         target: panel,
         startRotation: panel.rotation.y,
         endRotation: panel.rotation.y + this.getDoorOpeningAngle(panel),
+        collisionEnabledOnComplete: false,
         elapsedSeconds: 0,
       });
       this.openedInteractiveDoors.add(this.focusedDoor);
+      if (panel.name === this.autoCloseDoorPanelId) {
+        this.scheduledDoorClosures.set(
+          this.focusedDoor,
+          AUTO_CLOSE_DOOR_005_ANOMALY.delaySeconds,
+        );
+      }
       this.cooldownRemaining = this.selectionCooldownSeconds;
       this.eventBus.emit('interaction:interactive-door-opened', {
         objectName,
@@ -189,6 +201,8 @@ export class InteractionManager {
   public resetRound(): void {
     this.openedInteractiveDoors.clear();
     this.doorAnimations.clear();
+    this.scheduledDoorClosures.clear();
+    this.autoCloseDoorPanelId = null;
     for (const [door, panel] of this.interactiveDoorPanels) {
       const collider = this.interactiveDoorColliders.get(door);
       if (collider !== undefined) {
@@ -206,6 +220,10 @@ export class InteractionManager {
 
   public startRound(round: RoundStartedEvent): void {
     this.resetRound();
+    if (round.anomalyId === AUTO_CLOSE_DOOR_005_ANOMALY.id) {
+      this.autoCloseDoorPanelId = AUTO_CLOSE_DOOR_005_ANOMALY.targetObjectId;
+      return;
+    }
     if (round.anomalyId !== UNLOCK_DOOR_001_ANOMALY.id) {
       return;
     }
@@ -222,6 +240,8 @@ export class InteractionManager {
     this.setEnabled(false);
     this.openedInteractiveDoors.clear();
     this.doorAnimations.clear();
+    this.scheduledDoorClosures.clear();
+    this.autoCloseDoorPanelId = null;
     this.setDoorHighlight(null);
   }
 
@@ -238,10 +258,41 @@ export class InteractionManager {
       if (progress >= 1) {
         const collider = this.interactiveDoorColliders.get(door);
         if (collider !== undefined) {
-          collider.userData['collisionEnabled'] = false;
+          collider.userData['collisionEnabled'] =
+            animation.collisionEnabledOnComplete;
+        }
+        if (animation.collisionEnabledOnComplete) {
+          this.openedInteractiveDoors.delete(door);
         }
         this.doorAnimations.delete(door);
       }
+    }
+  }
+
+  private updateScheduledDoorClosures(deltaSeconds: number): void {
+    for (const [door, remainingSeconds] of this.scheduledDoorClosures) {
+      const nextRemaining = remainingSeconds - Math.max(0, deltaSeconds);
+      if (nextRemaining > 0) {
+        this.scheduledDoorClosures.set(door, nextRemaining);
+        continue;
+      }
+
+      this.scheduledDoorClosures.delete(door);
+      const panel = this.interactiveDoorPanels.get(door);
+      if (panel === undefined) {
+        continue;
+      }
+      this.doorAnimations.set(door, {
+        target: panel,
+        startRotation: panel.rotation.y,
+        endRotation: this.initialPanelRotations.get(door) ?? 0,
+        collisionEnabledOnComplete: true,
+        elapsedSeconds: 0,
+      });
+      this.eventBus.emit('interaction:interactive-door-closed', {
+        objectName: door.name,
+        position: door.getWorldPosition(new Vector3()),
+      });
     }
   }
 

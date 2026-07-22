@@ -1,9 +1,12 @@
 import {
+  createGameRound,
   GAME_LEVELS,
   GAME_SESSION_ROUND_COUNT,
   type GameLevel,
   type GameRound,
 } from './GameRound';
+import type { Anomaly } from '../anomaly/Anomaly';
+import { RoundDifficulty } from './RoundDifficulty';
 
 export interface AnswerEvaluation {
   readonly isCorrect: boolean;
@@ -23,8 +26,7 @@ export class GameSessionCompletedError extends Error {
 }
 
 export class GameSession {
-  public readonly rounds: readonly GameRound[];
-
+  private roundsState: readonly GameRound[];
   private currentIndex = 0;
 
   public constructor(rounds: readonly GameRound[]) {
@@ -36,15 +38,19 @@ export class GameSession {
 
     rounds.forEach((round, index) => {
       if (round.level !== GAME_LEVELS[index]) {
-        throw new Error('Game session rounds must contain ordered levels 0–10.');
+        throw new Error('Game session rounds must contain ordered levels 0–8.');
       }
     });
 
-    this.rounds = Object.freeze([...rounds]);
+    this.roundsState = Object.freeze([...rounds]);
+  }
+
+  public get rounds(): readonly GameRound[] {
+    return this.roundsState;
   }
 
   public get currentRound(): GameRound | null {
-    return this.rounds[this.currentIndex] ?? null;
+    return this.roundsState[this.currentIndex] ?? null;
   }
 
   public get currentLevel(): GameLevel | null {
@@ -52,7 +58,26 @@ export class GameSession {
   }
 
   public get completed(): boolean {
-    return this.currentIndex >= this.rounds.length;
+    return this.currentIndex >= this.roundsState.length;
+  }
+
+  public overrideCurrentRound(anomaly: Anomaly | null): void {
+    const currentRound = this.currentRound;
+    if (currentRound === null) {
+      throw new GameSessionCompletedError();
+    }
+    if (currentRound.level === 0 && anomaly !== null) {
+      throw new Error('Level zero cannot contain an anomaly.');
+    }
+
+    const replacement = createGameRound(
+      currentRound.level,
+      anomaly?.difficulty ?? RoundDifficulty.None,
+      anomaly,
+    );
+    this.roundsState = Object.freeze(this.roundsState.map((round, index) =>
+      index === this.currentIndex ? replacement : round,
+    ));
   }
 
   public evaluateAnswer(answeredHasAnomaly: boolean): AnswerEvaluation {

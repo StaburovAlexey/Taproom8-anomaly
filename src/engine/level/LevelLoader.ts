@@ -10,6 +10,7 @@ import {
   gameEventBus,
   type EventBus,
   type GameEventMap,
+  type LevelAnomalyDefinition,
   type LevelSource,
 } from '../../shared/events';
 import { AssetManager } from '../loaders/AssetManager';
@@ -24,6 +25,10 @@ import { ObjectRegistry } from './ObjectRegistry';
 import { createProceduralLevel } from './ProceduralLevel';
 import { applyExternalTextures } from './ExternalTextureApplier';
 import { applyPS1Style } from '../rendering/PS1Style';
+import {
+  discoverLevelAnomalies,
+  type AnomalyDiscoveryIssue,
+} from './AnomalyDiscovery';
 
 export const DEFAULT_LEVEL_URL = '/assets/models/level.glb';
 
@@ -32,6 +37,7 @@ export interface LoadedLevel {
   readonly source: LevelSource;
   readonly url: string;
   readonly collisionObjects: readonly Object3D[];
+  readonly anomalyDefinitions: readonly LevelAnomalyDefinition[];
   readonly movementBounds?: Box3;
 }
 
@@ -93,17 +99,30 @@ export class LevelLoader {
         url,
         stage: 'model',
       });
-      await applyExternalTextures(gltf.scene, this.assetManager, (
-        loaded,
-        total,
-        textureUrl,
-      ) => {
-        this.eventBus.emit('loading:progress', {
-          progress: total === 0 ? 1 : loaded / total,
+      const discovery = discoverLevelAnomalies(gltf.scene);
+      discovery.issues.forEach((issue) => this.reportAnomalyIssue(issue));
+      const unavailableTextureTargets = await applyExternalTextures(
+        gltf.scene,
+        this.assetManager,
+        discovery.definitions,
+        (
           loaded,
           total,
-          ...(textureUrl === undefined ? {} : { url: textureUrl }),
-          stage: 'texture',
+          textureUrl,
+        ) => {
+          this.eventBus.emit('loading:progress', {
+            progress: total === 0 ? 1 : loaded / total,
+            loaded,
+            total,
+            ...(textureUrl === undefined ? {} : { url: textureUrl }),
+            stage: 'texture',
+          });
+        },
+      );
+      unavailableTextureTargets.forEach((targetObjectId) => {
+        this.reportAnomalyIssue({
+          objectName: targetObjectId,
+          message: `Texture anomaly assets for "${targetObjectId}" could not be loaded.`,
         });
       });
       applyPS1Style(gltf.scene);
@@ -113,6 +132,11 @@ export class LevelLoader {
         source: 'gltf',
         url,
         collisionObjects: this.prepareCollisionObjects(),
+        anomalyDefinitions: discovery.definitions.filter(
+          (definition) => !unavailableTextureTargets.has(
+            definition.targetObjectId,
+          ),
+        ),
       });
     } catch (error: unknown) {
       if (!this.fallbackToProcedural) {
@@ -126,12 +150,14 @@ export class LevelLoader {
         recoverable: true,
       });
       const fallback = createProceduralLevel();
+      const discovery = discoverLevelAnomalies(fallback.root);
       this.prepareAndRegister(fallback.root);
       return this.complete({
         root: fallback.root,
         source: 'procedural',
         url,
         collisionObjects: [],
+        anomalyDefinitions: discovery.definitions,
         movementBounds: fallback.movementBounds,
       });
     }
@@ -219,7 +245,16 @@ export class LevelLoader {
     this.eventBus.emit('level:loaded', {
       source: level.source,
       url: level.url,
+      anomalyDefinitions: level.anomalyDefinitions,
     });
     return level;
+  }
+
+  private reportAnomalyIssue(issue: AnomalyDiscoveryIssue): void {
+    this.eventBus.emit('engine:error', {
+      error: new Error(issue.message),
+      context: `Level anomaly object "${issue.objectName}".`,
+      recoverable: true,
+    });
   }
 }

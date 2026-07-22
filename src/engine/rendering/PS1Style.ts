@@ -1,10 +1,42 @@
-import { Mesh, NearestFilter, type Material, type Object3D, type Texture } from 'three'
+import {
+  Mesh,
+  NearestFilter,
+  Vector2,
+  type Material,
+  type Object3D,
+  type Texture,
+} from 'three'
 
 const textureKeys = ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'emissiveMap'] as const
+const snapResolution = { value: new Vector2(426, 240) }
+
+const projectVertexShader = `
+  vec4 mvPosition = vec4( transformed, 1.0 );
+  #ifdef USE_BATCHING
+    mvPosition = batchingMatrix * mvPosition;
+  #endif
+  #ifdef USE_INSTANCING
+    mvPosition = instanceMatrix * mvPosition;
+  #endif
+  mvPosition = modelViewMatrix * mvPosition;
+  vec4 projected = projectionMatrix * mvPosition;
+  vec2 ndc = projected.xy / projected.w;
+  vec2 pixelPosition = (ndc * 0.5 + 0.5) * ps1SnapResolution;
+  pixelPosition = floor(pixelPosition + 0.5);
+  ndc = (pixelPosition / ps1SnapResolution) * 2.0 - 1.0;
+  projected.xy = ndc * projected.w;
+  gl_Position = projected;
+`
+
+export function setPS1SnapResolution(width: number, height: number): void {
+  snapResolution.value.set(Math.max(1, width), Math.max(1, height))
+}
 
 export function applyPS1TextureStyle(texture: Texture): void {
   texture.magFilter = NearestFilter
   texture.minFilter = NearestFilter
+  texture.generateMipmaps = false
+  texture.anisotropy = 1
   texture.needsUpdate = true
 }
 
@@ -17,7 +49,7 @@ function applyNearestFiltering(material: Material): void {
   }
 }
 
-function createPS1Material(material: Material, snapScale: string): Material {
+function createPS1Material(material: Material): Material {
   const result = material.clone()
   if ('flatShading' in result) result.flatShading = true
   if ('roughness' in result) result.roughness = 1
@@ -25,34 +57,24 @@ function createPS1Material(material: Material, snapScale: string): Material {
   result.dithering = false
   applyNearestFiltering(result)
   result.onBeforeCompile = (shader) => {
-    shader.vertexShader = shader.vertexShader.replace('#include <project_vertex>', `
-      vec4 mvPosition = modelViewMatrix * vec4( transformed, 1.0 );
-      vec4 projected = projectionMatrix * mvPosition;
-      float snapScale = ${snapScale};
-      projected.xy = floor(projected.xy * snapScale) / snapScale;
-      gl_Position = projected;
-    `)
-    shader.fragmentShader = shader.fragmentShader.replace('#include <output_fragment>', `
-      float bayer[16];
-      bayer[0]=0.0; bayer[1]=8.0; bayer[2]=2.0; bayer[3]=10.0;
-      bayer[4]=12.0; bayer[5]=4.0; bayer[6]=14.0; bayer[7]=6.0;
-      bayer[8]=3.0; bayer[9]=11.0; bayer[10]=1.0; bayer[11]=9.0;
-      bayer[12]=15.0; bayer[13]=7.0; bayer[14]=13.0; bayer[15]=5.0;
-      int bi = int(mod(gl_FragCoord.x, 4.0)) + int(mod(gl_FragCoord.y, 4.0)) * 4;
-      float threshold = bayer[bi] / 16.0;
-      float ps1Levels = 4.0;
-      vec3 quantized = floor((outgoingLight + threshold / ps1Levels) * ps1Levels) / ps1Levels;
-      gl_FragColor = vec4(quantized, diffuseColor.a);
-    `)
+    shader.uniforms['ps1SnapResolution'] = snapResolution
+    shader.vertexShader = shader.vertexShader
+      .replace(
+        '#include <uv_pars_vertex>',
+        `#include <uv_pars_vertex>
+        uniform vec2 ps1SnapResolution;`,
+      )
+      .replace('#include <project_vertex>', projectVertexShader)
   }
+  result.customProgramCacheKey = () => 'ps1-screen-snap-v2'
   result.needsUpdate = true
   return result
 }
 
-export function applyPS1Style(root: Object3D, snapScale = '100.0'): void {
+export function applyPS1Style(root: Object3D): void {
   root.traverse((object) => {
     if (!(object instanceof Mesh) || object.material === undefined) return
-    const convert = (material: Material) => createPS1Material(material, snapScale)
+    const convert = (material: Material) => createPS1Material(material)
     object.material = Array.isArray(object.material)
       ? object.material.map(convert)
       : convert(object.material)

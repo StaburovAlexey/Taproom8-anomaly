@@ -36,6 +36,4 @@ export const DEFAULT_LEVEL_CONFIGS: readonly LevelConfig[] = Object.freeze([
   config(6, 30, 14, 35, 21),
   config(7, 30, 11, 31, 28),
   config(8, 30, 7, 28, 35),
-  config(9, 30, 7, 25, 38),
-  config(10, 30, 5, 18, 47),
 ]);
