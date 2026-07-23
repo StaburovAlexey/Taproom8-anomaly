@@ -9,6 +9,12 @@ function createFixture(language = 'en') {
     onClose?: (wasShown: boolean) => void
     onError?: (error: object) => void
   } | undefined
+  let rewardedCallbacks: {
+    onOpen?: () => void
+    onRewarded?: () => void
+    onClose?: (wasShown: boolean) => void
+    onError?: (error: object) => void
+  } | undefined
   const ready = vi.fn()
   const start = vi.fn()
   const stop = vi.fn()
@@ -17,8 +23,13 @@ function createFixture(language = 'en') {
   }) => {
     fullscreenCallbacks = options?.callbacks
   })
+  const showRewardedVideo = vi.fn((options?: {
+    callbacks?: typeof rewardedCallbacks
+  }) => {
+    rewardedCallbacks = options?.callbacks
+  })
   const instance = {
-    adv: { showFullscreenAdv },
+    adv: { showFullscreenAdv, showRewardedVideo },
     environment: { i18n: { lang: language } },
     features: {
       LoadingAPI: { ready },
@@ -49,12 +60,21 @@ function createFixture(language = 'en') {
     stop,
     listeners,
     showFullscreenAdv,
+    showRewardedVideo,
     openFullscreenAd: () => fullscreenCallbacks?.onOpen?.(),
     closeFullscreenAd: (wasShown: boolean) => {
       fullscreenCallbacks?.onClose?.(wasShown)
     },
     failFullscreenAd: (error: object) => {
       fullscreenCallbacks?.onError?.(error)
+    },
+    openRewardedAd: () => rewardedCallbacks?.onOpen?.(),
+    grantReward: () => rewardedCallbacks?.onRewarded?.(),
+    closeRewardedAd: (wasShown: boolean) => {
+      rewardedCallbacks?.onClose?.(wasShown)
+    },
+    failRewardedAd: (error: object) => {
+      rewardedCallbacks?.onError?.(error)
     },
   }
 }
@@ -147,5 +167,47 @@ describe('YandexGamesSdk', () => {
     await expect(sdk.showFullscreenAd()).resolves.toEqual({
       status: 'unavailable',
     })
+    await expect(sdk.showRewardedAd()).resolves.toEqual({
+      status: 'unavailable',
+    })
+  })
+
+  it('grants a reward only after the rewarded callback', async () => {
+    const fixture = createFixture()
+    const rewarded = vi.fn()
+    await fixture.sdk.initialize()
+
+    const closedEarly = fixture.sdk.showRewardedAd({ onRewarded: rewarded })
+    fixture.openRewardedAd()
+    fixture.closeRewardedAd(true)
+    await expect(closedEarly).resolves.toEqual({ status: 'closed' })
+    expect(rewarded).not.toHaveBeenCalled()
+
+    const completed = fixture.sdk.showRewardedAd({ onRewarded: rewarded })
+    fixture.openRewardedAd()
+    fixture.grantReward()
+    expect(rewarded).toHaveBeenCalledTimes(1)
+    fixture.closeRewardedAd(true)
+
+    await expect(completed).resolves.toEqual({ status: 'rewarded' })
+    expect(fixture.showRewardedVideo).toHaveBeenCalledTimes(2)
+  })
+
+  it('settles a rewarded request once after an error', async () => {
+    const fixture = createFixture()
+    const closed = vi.fn()
+    await fixture.sdk.initialize()
+
+    const request = fixture.sdk.showRewardedAd({ onClose: closed })
+    fixture.openRewardedAd()
+    fixture.failRewardedAd({ code: 'OFFLINE' })
+    fixture.closeRewardedAd(false)
+
+    const result = await request
+    expect(result.status).toBe('error')
+    if (result.status === 'error') {
+      expect(result.error.message).toBe('Yandex Games rewarded ad failed.')
+    }
+    expect(closed).toHaveBeenCalledTimes(1)
   })
 })

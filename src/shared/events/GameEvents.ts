@@ -91,6 +91,7 @@ export interface RoundStartedEvent {
 
 export interface RoundResolvedEvent {
   readonly correct: boolean;
+  readonly mistakeProtected: boolean;
   readonly selectedAnswer: boolean;
   readonly nextLevel: number;
   readonly completed: boolean;
@@ -121,7 +122,7 @@ export interface GameEventMap {
 
   'game:run-requested': void;
   'game:pause-requested': void;
-  'session:start-requested': void;
+  'session:start-requested': { readonly mistakeProtection: boolean };
   'session:abandon-requested': void;
   'round:advance-requested': void;
   'gameplay:input-changed': { readonly enabled: boolean };

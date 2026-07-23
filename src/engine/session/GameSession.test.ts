@@ -211,6 +211,28 @@ describe('GameSession progress', () => {
     expect(session.evaluateAnswer(false).isCorrect).toBe(true);
   });
 
+  it('keeps the current level when a mistake is protected', () => {
+    const session = new GameSessionGenerator({
+      anomalyPools: buildPools(10),
+      levelConfigs: configsFor(RoundDifficulty.Easy),
+      random: new SeededRandom('protected-mistake'),
+    }).generate();
+
+    session.evaluateAnswer(true);
+    const protectedMistake = session.evaluateAnswer(false, {
+      protectMistake: true,
+    });
+
+    expect(protectedMistake).toMatchObject({
+      isCorrect: false,
+      mistakeProtected: true,
+      previousLevel: 1,
+      currentLevel: 1,
+      resetToFirstLevel: false,
+    });
+    expect(session.currentLevel).toBe(1);
+  });
+
   it('completes after nine correct answers and can restart in memory', () => {
     const session = new GameSessionGenerator({
       anomalyPools: buildPools(10),
