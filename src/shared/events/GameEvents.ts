@@ -17,7 +17,7 @@ export interface LoadingProgressEvent {
   readonly loaded: number;
   readonly total: number;
   readonly url?: string;
-  readonly stage: 'asset' | 'level';
+  readonly stage: 'asset' | 'level' | 'model' | 'texture' | 'audio';
 }
 
 export interface EngineReadyEvent {
@@ -34,18 +34,25 @@ export interface EngineErrorEvent {
 
 export interface MovementEvent {
   readonly position: Vector3Value;
+  readonly sprinting: boolean;
 }
 
 export interface DoorSelectedEvent {
   readonly answer: boolean;
   readonly doorId: DoorId;
   readonly objectName: DoorObjectName;
+  readonly position?: Vector3Value;
 }
 
 export interface InteractionHintEvent {
   readonly visible: boolean;
   readonly messageKey: string | null;
-  readonly objectName: DoorObjectName | null;
+  readonly objectName: string | null;
+}
+
+export interface InteractiveDoorEvent {
+  readonly objectName: string;
+  readonly position?: Vector3Value;
 }
 
 export interface PointerLockEvent {
@@ -53,30 +60,79 @@ export interface PointerLockEvent {
 }
 
 export type RoundDifficulty = 'None' | 'Easy' | 'Medium' | 'Hard';
+export type LevelAnomalyDifficulty = Exclude<RoundDifficulty, 'None'>;
+export type LevelAnomalyKind = 'remove' | 'texture-swap' | 'sprite';
+
+export interface LevelAnomalyDefinition {
+  readonly kind: LevelAnomalyKind;
+  readonly difficulty: LevelAnomalyDifficulty;
+  readonly targetObjectId: string;
+  readonly assetBaseName: string;
+}
+
+export interface DevAnomalyOption {
+  readonly id: string;
+  readonly difficulty: Exclude<RoundDifficulty, 'None'>;
+  readonly targetObjectId: string;
+}
+
+export type DevNextAnomalySelection =
+  | { readonly kind: 'random' }
+  | { readonly kind: 'none' }
+  | { readonly kind: 'anomaly'; readonly anomalyId: string };
 
 export interface RoundStartedEvent {
   readonly level: number;
   readonly difficulty: RoundDifficulty;
   readonly anomalyId: string | null;
+  readonly anomalyTargetObjectId: string | null;
   readonly hasAnomaly: boolean;
 }
 
 export interface RoundResolvedEvent {
   readonly correct: boolean;
+  readonly mistakeProtected: boolean;
+  readonly remainingMistakeChances: number;
   readonly selectedAnswer: boolean;
   readonly nextLevel: number;
   readonly completed: boolean;
 }
 
+export interface RunBoostConfiguration {
+  readonly mistakeChances: number;
+  readonly speedMultiplier: 1 | 1.5;
+}
+
 export interface GameEventMap {
+  'platform:ready': void;
+  'platform:pause-requested': void;
+  'platform:resume-requested': void;
+  'gameplay:activity-changed': { readonly active: boolean };
+  'advertising:break-started': void;
+  'advertising:break-finished': { readonly resumeGame: boolean };
+
   'ui:unlock-audio': void;
-  'ui:start-game': void;
-  'ui:return-menu': void;
+  'ui:button-pressed': void;
   'ui:graphics-changed': { readonly quality: GraphicsQuality };
+  'ui:brightness-changed': { readonly brightness: number };
+  'ui:volume-changed': { readonly master: number };
   'ui:mobile-move': Vector2Value;
   'ui:mobile-look': Vector2Value;
+  'ui:mobile-sprint': boolean;
   'ui:mobile-interact': void;
-  'ui:request-pointer-lock': void;
+
+  'dev:anomaly-options-changed': {
+    readonly options: readonly DevAnomalyOption[];
+  };
+  'dev:next-anomaly-selected': DevNextAnomalySelection;
+  'dev:next-anomaly-consumed': void;
+
+  'game:run-requested': void;
+  'game:pause-requested': void;
+  'session:start-requested': RunBoostConfiguration;
+  'session:abandon-requested': void;
+  'round:advance-requested': void;
+  'gameplay:input-changed': { readonly enabled: boolean };
 
   'loading:progress': LoadingProgressEvent;
   'engine:ready': EngineReadyEvent;
@@ -84,14 +140,23 @@ export interface GameEventMap {
   'level:loaded': {
     readonly source: LevelSource;
     readonly url: string;
+    readonly anomalyDefinitions: readonly LevelAnomalyDefinition[];
   };
+  'audio:speaker-sources-changed': {
+    readonly positions: readonly Vector3Value[];
+  };
+  'audio:gameplay-resumed': void;
+  'audio:preload-completed': void;
 
   'player:movement-started': MovementEvent;
   'player:movement-stopped': MovementEvent;
+  'player:sprint-changed': MovementEvent;
   'player:pointer-lock': PointerLockEvent;
 
   'interaction:door-selected': DoorSelectedEvent;
   'interaction:door-opened': DoorSelectedEvent;
+  'interaction:interactive-door-opened': InteractiveDoorEvent;
+  'interaction:interactive-door-closed': InteractiveDoorEvent;
   'interaction:hint': InteractionHintEvent;
 
   'round:started': RoundStartedEvent;
