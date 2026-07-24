@@ -31,8 +31,35 @@ interface AdvertisingApi {
   }): void
 }
 
+export interface YandexProduct {
+  readonly id: string
+  readonly title: string
+  readonly description: string
+  readonly imageURI: string
+  readonly price: string
+  readonly priceValue: string
+  readonly priceCurrencyCode: string
+  getPriceCurrencyImage(size?: 'small' | 'medium' | 'svg'): string
+}
+
+export interface YandexPurchase {
+  readonly productID: string
+  readonly purchaseToken: string
+  readonly developerPayload: string
+}
+
+export interface YandexPaymentsApi {
+  getCatalog(): Promise<YandexProduct[]>
+  getPurchases(): Promise<YandexPurchase[]>
+  purchase(data: {
+    readonly id: string
+    readonly developerPayload?: string
+  }): Promise<YandexPurchase>
+}
+
 interface YandexGamesSdkInstance {
   readonly adv?: AdvertisingApi
+  readonly payments?: YandexPaymentsApi
   readonly environment?: {
     readonly i18n?: {
       readonly lang?: string
@@ -42,6 +69,7 @@ interface YandexGamesSdkInstance {
     readonly LoadingAPI?: LoadingApi
     readonly GameplayAPI?: GameplayApi
   }
+  getPayments?(): Promise<YandexPaymentsApi>
   on(event: YandexGamesEvent, handler: () => void): void
   off(event: YandexGamesEvent, handler: () => void): void
 }
@@ -105,6 +133,7 @@ export class YandexGamesSdk {
   private readyRequest: Promise<void> | null = null
   private fullscreenAdRequest: Promise<FullscreenAdResult> | null = null
   private rewardedAdRequest: Promise<RewardedAdResult> | null = null
+  private paymentsRequest: Promise<YandexPaymentsApi | null> | null = null
   private readyReported = false
   private gameplayActive = false
 
@@ -121,6 +150,29 @@ export class YandexGamesSdk {
 
   public get language(): string | null {
     return this.sdk?.environment?.i18n?.lang ?? null
+  }
+
+  public getPayments(): Promise<YandexPaymentsApi | null> {
+    if (this.paymentsRequest !== null) {
+      return this.paymentsRequest
+    }
+    const sdk = this.sdk
+    if (sdk === null) {
+      return Promise.resolve(null)
+    }
+    if (sdk.getPayments === undefined) {
+      return Promise.resolve(sdk.payments ?? null)
+    }
+    const request = sdk.getPayments()
+      .then((payments) => payments)
+      .catch((cause: unknown) => {
+        throw asError(cause, 'Yandex Games payments initialization failed.')
+      })
+    this.paymentsRequest = request
+    return request.catch((cause: unknown) => {
+      this.paymentsRequest = null
+      throw cause
+    })
   }
 
   public initialize(): Promise<void> {

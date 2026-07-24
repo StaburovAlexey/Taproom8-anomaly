@@ -14,6 +14,9 @@ import type {
 defineProps<{
   devAnomalyOptions: readonly DevAnomalyOption[]
   devNextAnomalySelection: DevNextAnomalySelection
+  mistakeChances: number
+  mistakeChanceCapacity: number
+  speedMultiplier: 1 | 1.5
 }>()
 
 defineEmits<{
@@ -38,6 +41,12 @@ const isDev = import.meta.env.DEV
     <div v-else class="pause-menu__content">
       <BrandMark compact />
       <p class="pause-menu__objective">{{ t('game.objective') }}</p>
+      <div class="pause-menu__boosts">
+        <span>
+          {{ t('boosts.chancesHud') }}: {{ mistakeChances }} / {{ mistakeChanceCapacity }}
+        </span>
+        <span v-if="speedMultiplier === 1.5">{{ t('boosts.speedActive') }}</span>
+      </div>
       <nav class="pause-menu__actions" aria-label="Pause menu">
         <MenuButton
           :label="t('menu.continue')"
@@ -77,6 +86,19 @@ const isDev = import.meta.env.DEV
   color: var(--color-muted);
   font-family: var(--font-mono);
   font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pause-menu__boosts {
+  display: flex;
+  min-height: 1.5rem;
+  justify-content: center;
+  margin: 1.25rem 0 1.25rem;
+  gap: 1rem;
+  color: var(--color-signal);
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }

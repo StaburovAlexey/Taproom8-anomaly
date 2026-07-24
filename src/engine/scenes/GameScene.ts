@@ -85,6 +85,7 @@ export class GameScene implements ManagedScene {
   private active = false;
   private inputEnabled = false;
   private roundResolved = false;
+  private movementSpeedMultiplier = 1;
 
   public constructor(
     assetManager: AssetManager,
@@ -112,6 +113,10 @@ export class GameScene implements ManagedScene {
     this.unsubscribers = [
       this.eventBus.on('round:started', (round) => this.handleRoundStarted(round)),
       this.eventBus.on('round:resolved', () => this.handleRoundResolved()),
+      this.eventBus.on('session:start-requested', ({ speedMultiplier }) => {
+        this.movementSpeedMultiplier = speedMultiplier;
+        this.player?.movementController.setSpeedMultiplier(speedMultiplier);
+      }),
     ];
   }
 
@@ -144,6 +149,9 @@ export class GameScene implements ManagedScene {
           ? {}
           : { movementBounds: level.movementBounds }),
       },
+    );
+    this.player.movementController.setSpeedMultiplier(
+      this.movementSpeedMultiplier,
     );
     this.scene.add(this.player.object);
     this.input = new InputManager(this.canvas, this.eventBus);

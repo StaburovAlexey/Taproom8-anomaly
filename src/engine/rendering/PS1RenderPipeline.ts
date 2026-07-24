@@ -65,6 +65,7 @@ export class PS1RenderPipeline {
   private readonly resolution = new Vector2(1, 1);
   private resolutionHeight = 240;
   private resolutionScale = 0.6;
+  private snapResolutionMultiplier = 1.5;
 
   public constructor() {
     this.target.texture.generateMipmaps = false;
@@ -90,6 +91,10 @@ export class PS1RenderPipeline {
     this.resolutionScale = Math.min(1, Math.max(0.1, scale));
   }
 
+  public setMobileMode(enabled: boolean): void {
+    this.snapResolutionMultiplier = enabled ? 2.2 : 1.5;
+  }
+
   public setSize(displayWidth: number, displayHeight: number): void {
     const aspect = displayWidth / Math.max(1, displayHeight);
     const scaledHeight = Math.max(1, Math.round(displayHeight * this.resolutionScale));
@@ -97,7 +102,10 @@ export class PS1RenderPipeline {
     const width = Math.max(1, Math.round(height * aspect));
     this.target.setSize(width, height);
     this.resolution.set(width, height);
-    setPS1SnapResolution(width * 1.5, height * 1.5);
+    setPS1SnapResolution(
+      width * this.snapResolutionMultiplier,
+      height * this.snapResolutionMultiplier,
+    );
   }
 
   public setBrightness(brightness: number): void {

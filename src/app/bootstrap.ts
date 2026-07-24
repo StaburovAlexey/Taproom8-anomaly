@@ -11,6 +11,7 @@ import { i18n, setI18nLanguage } from '@/shared/i18n'
 import { yandexGamesSdk } from '@/platform/yandex'
 import { publicAssetUrl } from '@/shared/assets/publicAssetUrl'
 import { useSettingsStore } from '@/ui/stores/settings'
+import { useBoostsStore } from '@/ui/boosts/boosts.store'
 import '@/ui/styles/global.css'
 
 export interface BootstrapOptions {
@@ -28,11 +29,13 @@ export function bootstrap(options: BootstrapOptions = {}): void {
 
   app.use(pinia)
   const settings = useSettingsStore(pinia)
+  const boosts = useBoostsStore(pinia)
   settings.applyPlatformLanguage(yandexGamesSdk.language)
   setI18nLanguage(settings.language)
   AudioManager.applyVolumeSettings(settings.volume)
   app.use(i18n)
   app.mount('#app')
+  void boosts.initialize()
 
   if (options.platformInitializationError !== null
     && options.platformInitializationError !== undefined) {

@@ -18,6 +18,18 @@ function createFixture(language = 'en') {
   const ready = vi.fn()
   const start = vi.fn()
   const stop = vi.fn()
+  const getCatalog = vi.fn(async () => [])
+  const getPurchases = vi.fn(async () => [])
+  const purchase = vi.fn(async ({ id }: { id: string }) => ({
+    productID: id,
+    purchaseToken: `${id}-token`,
+    developerPayload: '',
+  }))
+  const getPayments = vi.fn(async () => ({
+    getCatalog,
+    getPurchases,
+    purchase,
+  }))
   const showFullscreenAdv = vi.fn((options?: {
     callbacks?: typeof fullscreenCallbacks
   }) => {
@@ -35,6 +47,7 @@ function createFixture(language = 'en') {
       LoadingAPI: { ready },
       GameplayAPI: { start, stop },
     },
+    getPayments,
     on: vi.fn((event: YandexGamesEvent, handler: () => void) => {
       const handlers = listeners.get(event) ?? new Set()
       handlers.add(handler)
@@ -61,6 +74,10 @@ function createFixture(language = 'en') {
     listeners,
     showFullscreenAdv,
     showRewardedVideo,
+    getPayments,
+    getCatalog,
+    getPurchases,
+    purchase,
     openFullscreenAd: () => fullscreenCallbacks?.onOpen?.(),
     closeFullscreenAd: (wasShown: boolean) => {
       fullscreenCallbacks?.onClose?.(wasShown)
@@ -103,6 +120,24 @@ describe('YandexGamesSdk', () => {
     expect(ready).toHaveBeenCalledTimes(1)
     expect(start).toHaveBeenCalledTimes(1)
     expect(stop).toHaveBeenCalledTimes(1)
+  })
+
+  it('initializes payments once and exposes their catalog and purchases', async () => {
+    const fixture = createFixture()
+    await fixture.sdk.initialize()
+
+    const [first, second] = await Promise.all([
+      fixture.sdk.getPayments(),
+      fixture.sdk.getPayments(),
+    ])
+    await first?.getCatalog()
+    await second?.getPurchases()
+    await first?.purchase({ id: 'boost_speed_150' })
+
+    expect(fixture.getPayments).toHaveBeenCalledTimes(1)
+    expect(fixture.getCatalog).toHaveBeenCalledTimes(1)
+    expect(fixture.getPurchases).toHaveBeenCalledTimes(1)
+    expect(fixture.purchase).toHaveBeenCalledWith({ id: 'boost_speed_150' })
   })
 
   it('subscribes and unsubscribes from pause events', async () => {

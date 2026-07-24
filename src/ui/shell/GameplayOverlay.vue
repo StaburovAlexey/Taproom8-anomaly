@@ -13,12 +13,16 @@ const props = defineProps<{
   anomalyTargetObjectId: string | null
   interactionHint: string | null
   protectionNoticeVisible: boolean
+  protectionNoticeKey: string | null
+  mistakeChances: number
+  mistakeChanceCapacity: number
 }>()
 
 defineEmits<{
   menu: []
   move: [axis: Vector2Value]
   look: [axis: Vector2Value]
+  sprint: [sprinting: boolean]
   interact: []
 }>()
 
@@ -28,7 +32,9 @@ const interactionLabel = computed(() =>
     ? t('common.open')
     : t(props.interactionHint),
 )
-const protectionNotice = computed(() => t('game.mistakeProtected'))
+const protectionNotice = computed(() =>
+  props.protectionNoticeKey === null ? '' : t(props.protectionNoticeKey),
+)
 </script>
 
 <template>
@@ -37,6 +43,8 @@ const protectionNotice = computed(() => t('game.mistakeProtected'))
     :total-levels="totalLevels"
     :anomaly-target-object-id="anomalyTargetObjectId"
     :interaction-hint="interactionHint"
+    :mistake-chances="mistakeChances"
+    :mistake-chance-capacity="mistakeChanceCapacity"
     @menu="$emit('menu')"
   />
   <GameplayNotice
@@ -48,6 +56,7 @@ const protectionNotice = computed(() => t('game.mistakeProtected'))
     :interact-label="interactionLabel"
     @move="$emit('move', $event)"
     @look="$emit('look', $event)"
+    @sprint="$emit('sprint', $event)"
     @interact="$emit('interact')"
   />
 </template>

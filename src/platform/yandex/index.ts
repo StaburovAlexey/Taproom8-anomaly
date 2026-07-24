@@ -5,9 +5,18 @@ export {
   type FullscreenAdResult,
   type RewardedAdCallbacks,
   type RewardedAdResult,
+  type YandexPaymentsApi,
+  type YandexProduct,
+  type YandexPurchase,
   type YandexGamesEvent,
   type YandexGamesSdkOptions,
 } from './YandexGamesSdk'
+export {
+  YandexPayments,
+  yandexPayments,
+  type PaymentsGateway,
+  type PaymentsSnapshot,
+} from './YandexPayments'
 export {
   YandexFullscreenAdvertising,
   yandexFullscreenAdvertising,

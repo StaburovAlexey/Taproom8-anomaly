@@ -21,6 +21,7 @@ export {
   type RoundDifficulty,
   type RoundResolvedEvent,
   type RoundStartedEvent,
+  type RunBoostConfiguration,
   type Vector2Value,
   type Vector3Value,
 } from './GameEvents';

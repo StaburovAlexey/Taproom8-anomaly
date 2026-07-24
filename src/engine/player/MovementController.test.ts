@@ -93,6 +93,23 @@ describe('MovementController', () => {
     expect(player.position.x).toBeCloseTo(1.5, 3);
   });
 
+  it('applies a runtime speed boost without changing sprint state', () => {
+    const player = new Object3D();
+    const controller = new MovementController(
+      player,
+      new EventBus<GameEventMap>(),
+      {
+        speed: 2,
+        sprintMultiplier: 1.5,
+      },
+    );
+
+    controller.setSpeedMultiplier(1.5);
+    controller.update(0.5, 1, 0, true);
+
+    expect(player.position.x).toBeCloseTo(2.25, 3);
+  });
+
   it('emits sprint changes while the player keeps moving', () => {
     const player = new Object3D();
     const eventBus = new EventBus<GameEventMap>();

@@ -43,6 +43,8 @@ export class Game {
   private gameScene: GameScene | null = null;
   private initialization: Promise<void> | null = null;
   private currentState: GameState = 'created';
+  private resizeFrame: number | null = null;
+  private resizeRetries = 0;
 
   public constructor(container: HTMLElement, options: GameOptions = {}) {
     this.container = container;
@@ -84,9 +86,10 @@ export class Game {
 
     this.resizeObserver = typeof ResizeObserver === 'undefined'
       ? null
-      : new ResizeObserver(() => this.resize());
+      : new ResizeObserver(() => this.scheduleResize());
     this.resizeObserver?.observe(this.container);
-    window.addEventListener('resize', this.resize);
+    window.addEventListener('resize', this.scheduleResize);
+    window.visualViewport?.addEventListener('resize', this.scheduleResize);
   }
 
   public get state(): GameState {
@@ -154,7 +157,12 @@ export class Game {
     }
 
     this.loop.dispose();
-    window.removeEventListener('resize', this.resize);
+    window.removeEventListener('resize', this.scheduleResize);
+    window.visualViewport?.removeEventListener('resize', this.scheduleResize);
+    if (this.resizeFrame !== null) {
+      cancelAnimationFrame(this.resizeFrame);
+      this.resizeFrame = null;
+    }
     this.resizeObserver?.disconnect();
     for (const unsubscribe of this.unsubscribers) {
       unsubscribe();
@@ -201,15 +209,34 @@ export class Game {
     }
   }
 
+  private readonly scheduleResize = (): void => {
+    if (this.resizeFrame !== null) {
+      return;
+    }
+    this.resizeFrame = requestAnimationFrame(() => {
+      this.resizeFrame = null;
+      this.resize();
+    });
+  };
+
   private readonly resize = (): void => {
     if (this.currentState === 'disposed') {
       return;
     }
     const bounds = this.container.getBoundingClientRect();
-    const width = Math.max(1, Math.floor(bounds.width));
-    const height = Math.max(1, Math.floor(bounds.height));
+    const width = Math.floor(bounds.width);
+    const height = Math.floor(bounds.height);
+    if (width < 2 || height < 2) {
+      if (this.resizeRetries < 3) {
+        this.resizeRetries += 1;
+        this.scheduleResize();
+      }
+      return;
+    }
+    this.resizeRetries = 0;
     this.renderer.resize(width, height);
     this.scenes.resize(width, height);
+    this.renderActiveScene();
   };
 
   private update(deltaSeconds: number, elapsedSeconds: number): void {
@@ -218,6 +245,14 @@ export class Game {
       return;
     }
     this.scenes.update(deltaSeconds, elapsedSeconds);
+    this.renderActiveScene();
+  }
+
+  private renderActiveScene(): void {
+    const activeScene = this.scenes.active;
+    if (activeScene === null) {
+      return;
+    }
     this.renderer.render(activeScene.scene, activeScene.camera);
   }
 }

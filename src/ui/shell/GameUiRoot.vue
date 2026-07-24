@@ -13,11 +13,15 @@ import CinematicTransition from '@/ui/transitions/CinematicTransition.vue'
 import HomeMenuScreen from '@/ui/menu/HomeMenuScreen.vue'
 import PauseMenuScreen from '@/ui/menu/PauseMenuScreen.vue'
 import GameplayOverlay from '@/ui/shell/GameplayOverlay.vue'
+import BoostShopScreen from '@/ui/boosts/BoostShopScreen.vue'
+import RunPreparationScreen from '@/ui/boosts/RunPreparationScreen.vue'
+import { useBoostsStore } from '@/ui/boosts/boosts.store'
 import { useUiFlowController } from '@/ui/flow/useUiFlowController'
 import { useUiFlowStore } from '@/ui/flow/uiFlow.store'
 
 const flow = useUiFlowStore()
 const settings = useSettingsStore()
+const boosts = useBoostsStore()
 const controller = useUiFlowController()
 const {
   screen,
@@ -29,9 +33,25 @@ const {
   devNextAnomalySelection,
   interactionHint,
   protectionNoticeVisible,
+  protectionNoticeKey,
   transitionVisible,
-  rewardProtectionStatus,
 } = storeToRefs(flow)
+const {
+  paymentsStatus,
+  catalog,
+  ownedProductIds,
+  purchasingProductId,
+  purchaseFailed,
+  rewardAdLoading,
+  preparationMistakeChances,
+  speedBoostEnabled,
+  activeMistakeChances,
+  activeMistakeChanceCapacity,
+  activeSpeedMultiplier,
+  mistakeChanceCapacity,
+  canWatchRewardedAd,
+  ownsSpeedBoost,
+} = storeToRefs(boosts)
 const { brightness, language, graphics, volume } = storeToRefs(settings)
 const { isFullscreen, isSupported, toggle: toggleFullscreen } = useFullscreen()
 </script>
@@ -45,9 +65,13 @@ const { isFullscreen, isSupported, toggle: toggleFullscreen } = useFullscreen()
       :anomaly-target-object-id="anomalyTargetObjectId"
       :interaction-hint="interactionHint"
       :protection-notice-visible="protectionNoticeVisible"
+      :protection-notice-key="protectionNoticeKey"
+      :mistake-chances="activeMistakeChances"
+      :mistake-chance-capacity="activeMistakeChanceCapacity"
       @menu="controller.openPause"
       @move="controller.updateMobileMovement"
       @look="controller.updateMobileLook"
+      @sprint="controller.updateMobileSprint"
       @interact="controller.interactOnMobile"
     />
 
@@ -69,17 +93,46 @@ const { isFullscreen, isSupported, toggle: toggleFullscreen } = useFullscreen()
       <HomeMenuScreen
         v-else-if="screen === 'home'"
         key="home"
-        :reward-protection-status="rewardProtectionStatus"
-        @start="controller.startSession"
-        @reward="controller.showRewardedProtectionAd"
+        @start="controller.openPreparation"
+        @shop="controller.openBoostShop"
         @settings="flow.openSettings()"
         @about="flow.showAbout()"
+      />
+      <RunPreparationScreen
+        v-else-if="screen === 'preparation'"
+        key="preparation"
+        :mistake-chances="preparationMistakeChances"
+        :mistake-chance-capacity="mistakeChanceCapacity"
+        :reward-ad-loading="rewardAdLoading"
+        :can-watch-rewarded-ad="canWatchRewardedAd"
+        :owns-speed-boost="ownsSpeedBoost"
+        :speed-boost-enabled="speedBoostEnabled"
+        @start="controller.startSession"
+        @reward="controller.showRewardedProtectionAd"
+        @shop="controller.openBoostShop"
+        @back="flow.showHome()"
+        @update-speed="controller.updateSpeedBoost"
+      />
+      <BoostShopScreen
+        v-else-if="screen === 'boostShop'"
+        key="boost-shop"
+        :catalog="catalog"
+        :owned-product-ids="ownedProductIds"
+        :payments-status="paymentsStatus"
+        :purchasing-product-id="purchasingProductId"
+        :purchase-failed="purchaseFailed"
+        @purchase="controller.purchaseBoost"
+        @retry="controller.retryPayments"
+        @back="flow.closeBoostShop()"
       />
       <PauseMenuScreen
         v-else-if="screen === 'pause'"
         key="pause"
         :dev-anomaly-options="devAnomalyOptions"
         :dev-next-anomaly-selection="devNextAnomalySelection"
+        :mistake-chances="activeMistakeChances"
+        :mistake-chance-capacity="activeMistakeChanceCapacity"
+        :speed-multiplier="activeSpeedMultiplier"
         @resume="controller.resumeGameplay"
         @settings="flow.openSettings()"
         @abandon="controller.requestAbandonSession"
@@ -109,7 +162,7 @@ const { isFullscreen, isSupported, toggle: toggleFullscreen } = useFullscreen()
       <CompletedScreen
         v-else-if="screen === 'completed'"
         key="completed"
-        @restart="controller.startSession"
+        @restart="controller.openPreparation"
         @menu="controller.returnHomeFromCompleted"
       />
       <EngineErrorScreen

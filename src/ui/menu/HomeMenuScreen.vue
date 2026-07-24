@@ -1,36 +1,16 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import BrandMark from '@/ui/components/BrandMark.vue'
 import MenuButton from '@/ui/components/MenuButton.vue'
-import type { RewardProtectionStatus } from '@/ui/flow/uiFlow.types'
-
-const props = defineProps<{
-  rewardProtectionStatus: RewardProtectionStatus
-}>()
-
 defineEmits<{
   start: []
-  reward: []
+  shop: []
   settings: []
   about: []
 }>()
 
 const { t } = useI18n()
-const rewardLabel = computed(() => {
-  switch (props.rewardProtectionStatus) {
-    case 'loading':
-      return t('menu.rewardLoading')
-    case 'granted':
-      return t('menu.rewardGranted')
-    case 'available':
-      return t('menu.rewardAd')
-  }
-})
-const rewardLoading = computed(() =>
-  props.rewardProtectionStatus === 'loading',
-)
 </script>
 
 <template>
@@ -40,22 +20,18 @@ const rewardLoading = computed(() =>
       <MenuButton
         :label="t('menu.start')"
         variant="primary"
-        :disabled="rewardLoading"
         @press="$emit('start')"
       />
       <MenuButton
-        :label="rewardLabel"
-        :disabled="rewardProtectionStatus !== 'available'"
-        @press="$emit('reward')"
+        :label="t('boosts.openShop')"
+        @press="$emit('shop')"
       />
       <MenuButton
         :label="t('menu.settings')"
-        :disabled="rewardLoading"
         @press="$emit('settings')"
       />
       <MenuButton
         :label="t('menu.about')"
-        :disabled="rewardLoading"
         @press="$emit('about')"
       />
     </nav>
@@ -86,9 +62,9 @@ const rewardLoading = computed(() =>
     font-size: clamp(2.4rem, 12vh, 4.5rem);
   }
 
-  .home-menu :deep(.brand__subtitle) {
+  /* .home-menu :deep(.brand__subtitle) {
     display: none;
-  }
+  } */
 
   .home-menu__actions {
     grid-template-columns: repeat(2, minmax(0, 1fr));

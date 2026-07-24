@@ -32,6 +32,7 @@ export class MovementController {
   private movementBounds: Box3 | null;
   private moving = false;
   private sprinting = false;
+  private speedMultiplier = 1;
 
   public constructor(
     playerRoot: Object3D,
@@ -53,6 +54,12 @@ export class MovementController {
     this.clampToBounds();
   }
 
+  public setSpeedMultiplier(multiplier: number): void {
+    this.speedMultiplier = Number.isFinite(multiplier)
+      ? Math.max(0, multiplier)
+      : 1;
+  }
+
   public update(
     deltaSeconds: number,
     movementX: number,
@@ -69,7 +76,9 @@ export class MovementController {
     const normalization = inputLength > 1 ? 1 / inputLength : 1;
     this.direction.set(movementX * normalization, 0, -movementY * normalization);
     this.direction.applyAxisAngle(this.upAxis, this.playerRoot.rotation.y);
-    const speed = this.speed * (sprinting ? this.sprintMultiplier : 1);
+    const speed = this.speed
+      * this.speedMultiplier
+      * (sprinting ? this.sprintMultiplier : 1);
     this.movementDelta.copy(this.direction).multiplyScalar(speed * deltaSeconds);
     this.moveAlongAxis('x', this.movementDelta.x);
     this.moveAlongAxis('z', this.movementDelta.z);

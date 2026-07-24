@@ -4,6 +4,7 @@ export type FullscreenAdPlacement =
   | 'after-cycle-3'
   | 'after-cycle-6'
   | `after-attempt-${number}`
+  | 'pause-menu'
   | 'completed-menu'
 
 const ROUND_PLACEMENTS = new Map<number, FullscreenAdPlacement>([
@@ -40,6 +41,12 @@ export class FullscreenAdSchedule {
     }
   }
 
+  public recordPauseMenu(): void {
+    if (!this.consumed.has('pause-menu')) {
+      this.pending = 'pause-menu'
+    }
+  }
+
   public recordCompletedMenu(): void {
     if (!this.consumed.has('completed-menu')) {
       this.pending = 'completed-menu'
@@ -60,7 +67,7 @@ export class FullscreenAdSchedule {
     placement: FullscreenAdPlacement,
     intent: CinematicTransitionIntent | null,
   ): boolean {
-    if (placement === 'completed-menu') {
+    if (placement === 'pause-menu' || placement === 'completed-menu') {
       return intent === 'abandon-session'
     }
     return intent === 'advance-round' || intent === 'show-completed'

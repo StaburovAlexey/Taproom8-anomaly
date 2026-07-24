@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import MistakeChanceIndicator from '@/ui/boosts/MistakeChanceIndicator.vue'
 
 const props = defineProps<{
   level: number
   totalLevels: number
   anomalyTargetObjectId: string | null
   interactionHint: string | null
+  mistakeChances: number
+  mistakeChanceCapacity: number
 }>()
 
 defineEmits<{
@@ -27,11 +30,17 @@ const interactionLabel = computed(() =>
 <template>
   <aside class="hud">
     <div class="hud__top">
-      <div v-if="isDev" class="hud__level">
-        <strong class="hud__value">{{ levelLabel }}</strong>
-        <span v-if="anomalyTargetObjectId" class="hud__anomaly">
-          Объект аномалии: {{ anomalyTargetObjectId }}
-        </span>
+      <div class="hud__status">
+        <div v-if="isDev" class="hud__level">
+          <strong class="hud__value">{{ levelLabel }}</strong>
+          <span v-if="anomalyTargetObjectId" class="hud__anomaly">
+            Объект аномалии: {{ anomalyTargetObjectId }}
+          </span>
+        </div>
+        <MistakeChanceIndicator
+          :chances="mistakeChances"
+          :capacity="mistakeChanceCapacity"
+        />
       </div>
       <button class="hud__menu" type="button" aria-label="Menu" @click="$emit('menu')">
         <span></span><span></span>
@@ -76,6 +85,11 @@ const interactionLabel = computed(() =>
 .hud__level {
   display: grid;
   gap: 0.3rem;
+}
+
+.hud__status {
+  display: grid;
+  gap: 0.65rem;
 }
 
 .hud__label {
@@ -199,6 +213,16 @@ const interactionLabel = computed(() =>
 @media (pointer: coarse) {
   .hud__hint { display: none; }
   .hud__bottom { bottom: 9rem; }
+
+  .hud__menu {
+    width: 2.25rem;
+    height: 2.25rem;
+    gap: 0.32rem;
+  }
+
+  .hud__menu span {
+    width: 0.8rem;
+  }
 }
 
 @media (max-width: 900px) {

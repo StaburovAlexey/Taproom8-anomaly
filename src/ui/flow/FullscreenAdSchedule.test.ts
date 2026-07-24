@@ -46,11 +46,14 @@ describe('FullscreenAdSchedule', () => {
     expect(schedule.take('show-completed')).toBe('after-attempt-5')
   })
 
-  it('schedules the completed-menu ad only for the abandon transition', () => {
+  it('schedules separate ads for pause and completed menu transitions', () => {
     const schedule = new FullscreenAdSchedule()
 
-    schedule.recordCompletedMenu()
+    schedule.recordPauseMenu()
     expect(schedule.take('advance-round')).toBeNull()
+    expect(schedule.take('abandon-session')).toBe('pause-menu')
+
+    schedule.recordCompletedMenu()
     expect(schedule.take('abandon-session')).toBe('completed-menu')
     schedule.recordCompletedMenu()
     expect(schedule.take('abandon-session')).toBeNull()

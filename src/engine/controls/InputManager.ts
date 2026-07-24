@@ -42,10 +42,11 @@ export class InputManager {
   ) {
     this.desktop = new DesktopControls(element, eventBus);
     this.mobile = new MobileControls();
-    this.mobileLookUnitsPerSecond = options.mobileLookUnitsPerSecond ?? 720;
+    this.mobileLookUnitsPerSecond = options.mobileLookUnitsPerSecond ?? 1000;
     this.unsubscribers = [
       eventBus.on('ui:mobile-move', ({ x, y }) => this.mobile.setMovement(x, y)),
       eventBus.on('ui:mobile-look', ({ x, y }) => this.mobile.setLook(x, y)),
+      eventBus.on('ui:mobile-sprint', (sprinting) => this.mobile.setSprinting(sprinting)),
       eventBus.on('ui:mobile-interact', () => this.mobile.requestInteraction()),
     ];
   }
@@ -83,7 +84,7 @@ export class InputManager {
       movementY,
       lookDeltaX: desktopLook.x + mobileLook.x * mobileScale,
       lookDeltaY: desktopLook.y + mobileLook.y * mobileScale,
-      sprint: this.desktop.sprinting,
+      sprint: this.desktop.sprinting || this.mobile.isSprinting,
       interact: this.desktop.consumeInteraction() || this.mobile.consumeInteraction(),
     };
   }

@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, reactive } from 'vue'
+import { onBeforeUnmount, onMounted, reactive, shallowRef } from 'vue'
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+import { faPersonRunning } from '@fortawesome/free-solid-svg-icons'
 
 export interface ControlAxis {
   x: number
@@ -22,11 +24,13 @@ type AxisEventName = 'move' | 'look'
 const emit = defineEmits<{
   move: [axis: ControlAxis]
   look: [axis: ControlAxis]
+  sprint: [sprinting: boolean]
   interact: []
 }>()
 
 const movement = reactive<StickState>({ pointerId: null, x: 0, y: 0 })
 const look = reactive<StickState>({ pointerId: null, x: 0, y: 0 })
+const sprinting = shallowRef(false)
 const radius = 42
 
 function emitAxis(eventName: AxisEventName, axis: ControlAxis): void {
@@ -126,29 +130,47 @@ function resetSticks(): void {
   resetStick(look, 'look')
 }
 
+function toggleSprint(): void {
+  sprinting.value = !sprinting.value
+  emit('sprint', sprinting.value)
+}
+
+function resetSprint(): void {
+  if (!sprinting.value) {
+    return
+  }
+  sprinting.value = false
+  emit('sprint', false)
+}
+
+function resetControls(): void {
+  resetSticks()
+  resetSprint()
+}
+
 function handleVisibilityChange(): void {
   if (document.visibilityState !== 'visible') {
-    resetSticks()
+    resetControls()
   }
 }
 
 onMounted(() => {
   window.addEventListener('pointerup', finishPointer)
   window.addEventListener('pointercancel', finishPointer)
-  window.addEventListener('blur', resetSticks)
-  window.addEventListener('pagehide', resetSticks)
-  window.addEventListener('orientationchange', resetSticks)
+  window.addEventListener('blur', resetControls)
+  window.addEventListener('pagehide', resetControls)
+  window.addEventListener('orientationchange', resetControls)
   document.addEventListener('visibilitychange', handleVisibilityChange)
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('pointerup', finishPointer)
   window.removeEventListener('pointercancel', finishPointer)
-  window.removeEventListener('blur', resetSticks)
-  window.removeEventListener('pagehide', resetSticks)
-  window.removeEventListener('orientationchange', resetSticks)
+  window.removeEventListener('blur', resetControls)
+  window.removeEventListener('pagehide', resetControls)
+  window.removeEventListener('orientationchange', resetControls)
   document.removeEventListener('visibilitychange', handleVisibilityChange)
-  resetSticks()
+  resetControls()
 })
 </script>
 
@@ -177,6 +199,17 @@ onBeforeUnmount(() => {
       @click="$emit('interact')"
     >
       {{ interactLabel }}
+    </button>
+
+    <button
+      class="mobile-controls__sprint"
+      :class="{ 'mobile-controls__sprint--active': sprinting }"
+      type="button"
+      :aria-label="sprinting ? 'Disable sprint' : 'Enable sprint'"
+      :aria-pressed="sprinting"
+      @click="toggleSprint"
+    >
+      <FontAwesomeIcon :icon="faPersonRunning" aria-hidden="true" />
     </button>
 
     <div
@@ -235,6 +268,26 @@ onBeforeUnmount(() => {
   letter-spacing: 0.08em;
   pointer-events: auto;
   text-transform: uppercase;
+}
+
+.mobile-controls__sprint {
+  position: fixed;
+  top: max(4.6rem, calc(env(safe-area-inset-top) + 4.6rem));
+  right: max(1.4rem, env(safe-area-inset-right));
+  display: grid;
+  width: 2.8rem;
+  height: 2.8rem;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+  font-size: 1rem;
+  pointer-events: auto;
+}
+
+.mobile-controls__sprint--active {
+  color: var(--color-signal);
 }
 
 .mobile-controls__zone::before,

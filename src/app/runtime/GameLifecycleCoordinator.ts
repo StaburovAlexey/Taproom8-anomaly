@@ -18,7 +18,9 @@ interface LifecycleDocument extends EventTarget {
   readonly visibilityState: DocumentVisibilityState
 }
 
-interface LifecycleWindow extends EventTarget {}
+interface LifecycleWindow extends EventTarget {
+  readonly matchMedia?: (query: string) => MediaQueryList
+}
 
 export interface GameLifecycleCoordinatorOptions {
   readonly eventBus?: EventBus<GameEventMap>
@@ -87,6 +89,7 @@ export class GameLifecycleCoordinator {
     this.listen(this.browserDocument, 'visibilitychange', this.handleVisibility)
     this.listen(this.browserWindow, 'blur', this.handleBlur)
     this.listen(this.browserWindow, 'focus', this.handleFocus)
+    this.listen(this.browserWindow, 'resize', this.handleResize)
     this.listen(this.browserWindow, 'pagehide', this.handlePageHide)
     this.listen(this.browserWindow, 'pageshow', this.handlePageShow)
 
@@ -198,11 +201,23 @@ export class GameLifecycleCoordinator {
   }
 
   private readonly handleBlur: EventListener = () => {
+    if (
+      this.browserDocument?.visibilityState === 'visible'
+      && this.browserWindow?.matchMedia?.('(pointer: coarse)').matches
+    ) {
+      return
+    }
     this.addPauseReason('focus')
   }
 
   private readonly handleFocus: EventListener = () => {
     this.removePauseReason('focus')
+  }
+
+  private readonly handleResize: EventListener = () => {
+    if (this.browserDocument?.visibilityState === 'visible') {
+      this.removePauseReason('focus')
+    }
   }
 
   private readonly handlePageHide: EventListener = () => {

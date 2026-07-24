@@ -35,7 +35,7 @@ defineEmits<{
   display: grid;
   width: min(100%, 24rem);
   margin-inline: auto;
-  min-height: 3.5rem;
+  min-height: 2.5rem;
   place-items: center;
   overflow: hidden;
   border: 1px solid var(--color-line);
@@ -89,9 +89,13 @@ defineEmits<{
 .menu-button__label {
   position: relative;
   z-index: 1;
+  max-width: calc(100% - 2rem);
+  overflow-wrap: anywhere;
+  line-height: 1.25;
   font-family: var(--font-mono);
   font-size: 0.72rem;
   font-weight: 600;
+  text-align: center;
 }
 
 .menu-button__line {
@@ -101,5 +105,17 @@ defineEmits<{
   height: 1px;
   background: currentColor;
   opacity: 0.4;
+}
+
+@media (pointer: coarse), (max-width: 700px) {
+  .menu-button {
+    min-height: 2.35rem;
+    padding: 0.35rem 0.5rem;
+    letter-spacing: 0.08em;
+  }
+
+  .menu-button__label {
+    font-size: 0.58rem;
+  }
 }
 </style>

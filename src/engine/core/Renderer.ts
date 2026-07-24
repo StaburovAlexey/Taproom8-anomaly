@@ -24,17 +24,27 @@ const RESOLUTION_SETTINGS: Readonly<
   normal: { height: 480, scale: 0.6 },
   potato: { height: 360, scale: 0.5 },
 };
+const MOBILE_RESOLUTION_SETTINGS: Readonly<
+  Record<GraphicsQuality, { readonly height: number; readonly scale: number }>
+> = {
+  normal: { height: 540, scale: 0.85 },
+  potato: { height: 480, scale: 0.7 },
+};
 
 export class Renderer {
   public readonly instance: WebGLRenderer;
 
   private readonly container: HTMLElement;
   private readonly pipeline = new PS1RenderPipeline();
+  private readonly mobile: boolean;
   private quality: GraphicsQuality;
 
   public constructor(container: HTMLElement, options: RendererOptions = {}) {
     this.container = container;
     this.quality = options.quality ?? 'normal';
+    this.mobile = typeof window !== 'undefined'
+      && window.matchMedia('(pointer: coarse)').matches;
+    this.pipeline.setMobileMode(this.mobile);
     this.instance = new WebGLRenderer({
       antialias: false,
       powerPreference: this.quality === 'normal' ? 'high-performance' : 'low-power',
@@ -96,7 +106,7 @@ export class Renderer {
   }
 
   private applyQuality(): void {
-    const settings = RESOLUTION_SETTINGS[this.quality];
+    const settings = (this.mobile ? MOBILE_RESOLUTION_SETTINGS : RESOLUTION_SETTINGS)[this.quality];
     this.pipeline.setResolution(settings.height, settings.scale);
   }
 }

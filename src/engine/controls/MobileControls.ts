@@ -12,6 +12,7 @@ export class MobileControls {
   private movementY = 0;
   private lookX = 0;
   private lookY = 0;
+  private sprinting = false;
   private interactionRequested = false;
 
   public setMovement(x: number, y: number): void {
@@ -22,6 +23,10 @@ export class MobileControls {
   public setLook(x: number, y: number): void {
     this.lookX = normalizeAxis(x);
     this.lookY = normalizeAxis(y);
+  }
+
+  public setSprinting(sprinting: boolean): void {
+    this.sprinting = sprinting;
   }
 
   public requestInteraction(): void {
@@ -36,6 +41,10 @@ export class MobileControls {
     return { x: this.lookX, y: this.lookY };
   }
 
+  public get isSprinting(): boolean {
+    return this.sprinting;
+  }
+
   public consumeInteraction(): boolean {
     const requested = this.interactionRequested;
     this.interactionRequested = false;
@@ -45,6 +54,7 @@ export class MobileControls {
   public reset(): void {
     this.setMovement(0, 0);
     this.setLook(0, 0);
+    this.setSprinting(false);
     this.interactionRequested = false;
   }
 }

@@ -19,6 +19,7 @@ import {
 import { FullscreenAdSchedule } from './FullscreenAdSchedule'
 import { LoadingProgressAggregator } from './LoadingProgressAggregator'
 import { useUiFlowStore } from './uiFlow.store'
+import { useBoostsStore, type BoostProductId } from '@/ui/boosts/boosts.store'
 import type { CinematicTransitionIntent } from './uiFlow.types'
 
 const PROTECTION_NOTICE_DURATION_MS = 3_000
@@ -30,6 +31,7 @@ export interface UiFlowControllerOptions {
 
 export function useUiFlowController(options: UiFlowControllerOptions = {}) {
   const flow = useUiFlowStore()
+  const boosts = useBoostsStore()
   const settings = useSettingsStore()
   const advertising = options.advertising ?? yandexFullscreenAdvertising
   const rewardedAdvertising = options.rewardedAdvertising
@@ -43,7 +45,7 @@ export function useUiFlowController(options: UiFlowControllerOptions = {}) {
   let loadingFinished = false
   let readyReported = false
   let coveredTransitionRunning = false
-  let protectionNoticePending = false
+  let pendingNoticeKey: string | null = null
   let protectionNoticeTimer: number | null = null
   let disposed = false
 
@@ -131,8 +133,16 @@ export function useUiFlowController(options: UiFlowControllerOptions = {}) {
     }),
     gameEventBus.on(
       'round:resolved',
-      ({ completed, correct, mistakeProtected }) => {
-        protectionNoticePending = mistakeProtected
+      ({
+        completed,
+        correct,
+        mistakeProtected,
+        remainingMistakeChances,
+      }) => {
+        boosts.setActiveMistakeChances(remainingMistakeChances)
+        pendingNoticeKey = mistakeProtected
+          ? 'game.mistakeProtected'
+          : null
         adSchedule.recordRound(flow.currentLevel, correct)
         if (!flow.beginTransition(completed ? 'show-completed' : 'advance-round')) {
           return
@@ -169,19 +179,20 @@ export function useUiFlowController(options: UiFlowControllerOptions = {}) {
       window.clearTimeout(protectionNoticeTimer)
       protectionNoticeTimer = null
     }
-    flow.setProtectionNoticeVisible(false)
+    flow.setProtectionNotice(false)
   }
 
   function showPendingProtectionNotice(): void {
-    if (!protectionNoticePending || flow.screen !== 'gameplay') {
+    if (pendingNoticeKey === null || flow.screen !== 'gameplay') {
       return
     }
-    protectionNoticePending = false
+    const messageKey = pendingNoticeKey
+    pendingNoticeKey = null
     hideProtectionNotice()
-    flow.setProtectionNoticeVisible(true)
+    flow.setProtectionNotice(true, messageKey)
     protectionNoticeTimer = window.setTimeout(() => {
       protectionNoticeTimer = null
-      flow.setProtectionNoticeVisible(false)
+      flow.setProtectionNotice(false)
     }, PROTECTION_NOTICE_DURATION_MS)
   }
 
@@ -210,14 +221,14 @@ export function useUiFlowController(options: UiFlowControllerOptions = {}) {
     if (!flow.beginTransition('start-session')) {
       return
     }
-    protectionNoticePending = false
+    pendingNoticeKey = null
     adSchedule.reset()
     setGameplayInput(false)
     gameEventBus.emit('game:run-requested', undefined)
   }
 
   async function showRewardedProtectionAd(): Promise<void> {
-    if (flow.screen !== 'home' || !flow.beginRewardedAd()) {
+    if (flow.screen !== 'preparation' || !boosts.beginRewardedAd()) {
       return
     }
     let rewardGranted = false
@@ -226,7 +237,7 @@ export function useUiFlowController(options: UiFlowControllerOptions = {}) {
         onRewarded: () => {
           rewardGranted = true
           if (!disposed) {
-            flow.finishRewardedAd(true)
+            boosts.finishRewardedAd(true)
           }
         },
       })
@@ -234,7 +245,7 @@ export function useUiFlowController(options: UiFlowControllerOptions = {}) {
         return
       }
       if (!rewardGranted) {
-        flow.finishRewardedAd(false)
+        boosts.finishRewardedAd(false)
       }
       if (result.status === 'error') {
         gameEventBus.emit('engine:error', {
@@ -247,7 +258,7 @@ export function useUiFlowController(options: UiFlowControllerOptions = {}) {
       if (disposed) {
         return
       }
-      flow.finishRewardedAd(false)
+      boosts.finishRewardedAd(false)
       gameEventBus.emit('engine:error', {
         error: cause instanceof Error
           ? cause
@@ -280,7 +291,8 @@ export function useUiFlowController(options: UiFlowControllerOptions = {}) {
     if (!flow.beginTransition('abandon-session')) {
       return
     }
-    protectionNoticePending = false
+    pendingNoticeKey = null
+    adSchedule.recordPauseMenu()
     setGameplayInput(false)
   }
 
@@ -288,7 +300,7 @@ export function useUiFlowController(options: UiFlowControllerOptions = {}) {
     if (!flow.beginTransition('abandon-session')) {
       return
     }
-    protectionNoticePending = false
+    pendingNoticeKey = null
     adSchedule.recordCompletedMenu()
     setGameplayInput(false)
   }
@@ -334,9 +346,7 @@ export function useUiFlowController(options: UiFlowControllerOptions = {}) {
     switch (intent) {
       case 'start-session':
         flow.showGameplay()
-        gameEventBus.emit('session:start-requested', {
-          mistakeProtection: flow.takeMistakeProtection(),
-        })
+        gameEventBus.emit('session:start-requested', boosts.activateRun())
         return
       case 'advance-round':
         gameEventBus.emit('round:advance-requested', undefined)
@@ -345,6 +355,7 @@ export function useUiFlowController(options: UiFlowControllerOptions = {}) {
         gameEventBus.emit('session:abandon-requested', undefined)
         gameEventBus.emit('game:pause-requested', undefined)
         flow.showHome()
+        boosts.endRun()
         flow.revealTransition()
         return
       case 'show-completed':
@@ -375,6 +386,32 @@ export function useUiFlowController(options: UiFlowControllerOptions = {}) {
     settings.setLanguage(language)
   }
 
+  function openPreparation(): void {
+    if (flow.screen === 'completed') {
+      boosts.endRun()
+    }
+    flow.showPreparation()
+  }
+
+  function openBoostShop(): void {
+    if (flow.screen !== 'home' && flow.screen !== 'preparation') {
+      return
+    }
+    flow.showBoostShop(flow.screen)
+  }
+
+  function purchaseBoost(productId: BoostProductId): void {
+    void boosts.purchaseBoost(productId)
+  }
+
+  function retryPayments(): void {
+    void boosts.initialize()
+  }
+
+  function updateSpeedBoost(enabled: boolean): void {
+    boosts.setSpeedBoostEnabled(enabled)
+  }
+
   function updateGraphics(graphics: GraphicsQuality): void {
     settings.setGraphics(graphics)
     gameEventBus.emit('ui:graphics-changed', { quality: graphics })
@@ -398,6 +435,10 @@ export function useUiFlowController(options: UiFlowControllerOptions = {}) {
     gameEventBus.emit('ui:mobile-look', axis)
   }
 
+  function updateMobileSprint(sprinting: boolean): void {
+    gameEventBus.emit('ui:mobile-sprint', sprinting)
+  }
+
   function interactOnMobile(): void {
     gameEventBus.emit('ui:mobile-interact', undefined)
   }
@@ -416,7 +457,7 @@ export function useUiFlowController(options: UiFlowControllerOptions = {}) {
 
   onScopeDispose(() => {
     disposed = true
-    protectionNoticePending = false
+    pendingNoticeKey = null
     hideProtectionNotice()
     cleanups.forEach((cleanup) => cleanup())
   })
@@ -426,6 +467,11 @@ export function useUiFlowController(options: UiFlowControllerOptions = {}) {
     handleMenuClick,
     handleScreenEntered,
     startSession,
+    openPreparation,
+    openBoostShop,
+    purchaseBoost,
+    retryPayments,
+    updateSpeedBoost,
     showRewardedProtectionAd,
     resumeGameplay,
     openPause,
@@ -439,6 +485,7 @@ export function useUiFlowController(options: UiFlowControllerOptions = {}) {
     updateVolume,
     updateMobileMovement,
     updateMobileLook,
+    updateMobileSprint,
     interactOnMobile,
     selectNextAnomaly,
     retryApplication,

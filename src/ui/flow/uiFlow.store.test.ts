@@ -82,31 +82,33 @@ describe('uiFlow store', () => {
     })
   })
 
-  it('grants and takes at most one rewarded mistake protection', () => {
+  it('returns from the boost shop to its source screen', () => {
     const flow = useUiFlowStore()
 
-    expect(flow.beginRewardedAd()).toBe(true)
-    expect(flow.beginRewardedAd()).toBe(false)
-    flow.finishRewardedAd(true)
-    expect(flow.rewardProtectionStatus).toBe('granted')
-    expect(flow.beginRewardedAd()).toBe(false)
+    flow.showHome()
+    flow.showBoostShop('home')
+    flow.closeBoostShop()
+    expect(flow.screen).toBe('home')
 
-    expect(flow.takeMistakeProtection()).toBe(true)
-    expect(flow.takeMistakeProtection()).toBe(false)
-    expect(flow.rewardProtectionStatus).toBe('available')
+    flow.showPreparation()
+    flow.showBoostShop('preparation')
+    flow.closeBoostShop()
+    expect(flow.screen).toBe('preparation')
   })
 
   it('clears the protection notice outside gameplay', () => {
     const flow = useUiFlowStore()
 
     flow.showGameplay()
-    flow.setProtectionNoticeVisible(true)
+    flow.setProtectionNotice(true, 'game.mistakeProtected')
     expect(flow.protectionNoticeVisible).toBe(true)
+    expect(flow.protectionNoticeKey).toBe('game.mistakeProtected')
 
     flow.showPause()
     expect(flow.protectionNoticeVisible).toBe(false)
-    flow.setProtectionNoticeVisible(true)
+    flow.setProtectionNotice(true, 'game.mistakeProtected')
     flow.showHome()
     expect(flow.protectionNoticeVisible).toBe(false)
+    expect(flow.protectionNoticeKey).toBeNull()
   })
 })

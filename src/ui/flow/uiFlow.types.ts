@@ -2,6 +2,8 @@ export type UiScreen =
   | 'loading'
   | 'audioGate'
   | 'home'
+  | 'preparation'
+  | 'boostShop'
   | 'gameplay'
   | 'pause'
   | 'settings'
@@ -10,10 +12,9 @@ export type UiScreen =
   | 'error'
 
 export type MenuScreen = 'home' | 'pause'
+export type BoostShopReturnScreen = 'home' | 'preparation'
 
 export type SessionUiState = 'none' | 'active' | 'completed'
-
-export type RewardProtectionStatus = 'available' | 'loading' | 'granted'
 
 export type CinematicTransitionPhase =
   | 'idle'

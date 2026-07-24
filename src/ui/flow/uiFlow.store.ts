@@ -8,8 +8,8 @@ import { FINAL_GAME_LEVEL } from '@/shared/config/gameplay'
 import type {
   CinematicTransitionIntent,
   CinematicTransitionPhase,
+  BoostShopReturnScreen,
   MenuScreen,
-  RewardProtectionStatus,
   SessionUiState,
   UiScreen,
 } from './uiFlow.types'
@@ -17,8 +17,8 @@ import type {
 interface UiFlowState {
   screen: UiScreen
   settingsReturnTo: MenuScreen
+  boostShopReturnTo: BoostShopReturnScreen
   session: SessionUiState
-  rewardProtectionStatus: RewardProtectionStatus
   loadingProgress: number
   currentLevel: number
   totalLevels: number
@@ -27,6 +27,7 @@ interface UiFlowState {
   devNextAnomalySelection: DevNextAnomalySelection
   interactionHint: string | null
   protectionNoticeVisible: boolean
+  protectionNoticeKey: string | null
   pointerLocked: boolean
   transitionPhase: CinematicTransitionPhase
   transitionIntent: CinematicTransitionIntent | null
@@ -36,8 +37,8 @@ export const useUiFlowStore = defineStore('ui-flow', {
   state: (): UiFlowState => ({
     screen: 'loading',
     settingsReturnTo: 'home',
+    boostShopReturnTo: 'home',
     session: 'none',
-    rewardProtectionStatus: 'available',
     loadingProgress: 0,
     currentLevel: 0,
     totalLevels: FINAL_GAME_LEVEL,
@@ -46,6 +47,7 @@ export const useUiFlowStore = defineStore('ui-flow', {
     devNextAnomalySelection: { kind: 'random' },
     interactionHint: null,
     protectionNoticeVisible: false,
+    protectionNoticeKey: null,
     pointerLocked: false,
     transitionPhase: 'idle',
     transitionIntent: null,
@@ -73,16 +75,29 @@ export const useUiFlowStore = defineStore('ui-flow', {
       this.anomalyTargetObjectId = null
       this.interactionHint = null
       this.protectionNoticeVisible = false
+      this.protectionNoticeKey = null
       this.pointerLocked = false
     },
     showGameplay(): void {
       this.screen = 'gameplay'
       this.session = 'active'
     },
+    showPreparation(): void {
+      this.screen = 'preparation'
+      this.pointerLocked = false
+    },
+    showBoostShop(returnTo: BoostShopReturnScreen): void {
+      this.boostShopReturnTo = returnTo
+      this.screen = 'boostShop'
+    },
+    closeBoostShop(): void {
+      this.screen = this.boostShopReturnTo
+    },
     showPause(): void {
       this.screen = 'pause'
       this.interactionHint = null
       this.protectionNoticeVisible = false
+      this.protectionNoticeKey = null
       this.pointerLocked = false
     },
     openSettings(): void {
@@ -122,31 +137,15 @@ export const useUiFlowStore = defineStore('ui-flow', {
     setInteractionHint(hint: string | null): void {
       this.interactionHint = hint
     },
-    setProtectionNoticeVisible(visible: boolean): void {
+    setProtectionNotice(
+      visible: boolean,
+      messageKey: string | null = null,
+    ): void {
       this.protectionNoticeVisible = visible
+      this.protectionNoticeKey = visible ? messageKey : null
     },
     setPointerLocked(locked: boolean): void {
       this.pointerLocked = locked
-    },
-    beginRewardedAd(): boolean {
-      if (this.rewardProtectionStatus !== 'available') {
-        return false
-      }
-      this.rewardProtectionStatus = 'loading'
-      return true
-    },
-    finishRewardedAd(rewarded: boolean): void {
-      if (this.rewardProtectionStatus !== 'loading') {
-        return
-      }
-      this.rewardProtectionStatus = rewarded ? 'granted' : 'available'
-    },
-    takeMistakeProtection(): boolean {
-      if (this.rewardProtectionStatus !== 'granted') {
-        return false
-      }
-      this.rewardProtectionStatus = 'available'
-      return true
     },
     beginTransition(intent: CinematicTransitionIntent): boolean {
       if (this.transitionPhase !== 'idle') {

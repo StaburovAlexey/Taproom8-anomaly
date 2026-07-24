@@ -160,6 +160,9 @@ const { t } = useI18n();
   min-height: 0;
   overflow: hidden;
   padding: max(3rem, env(safe-area-inset-top)) 1.25rem;
+  background:
+    linear-gradient(90deg, transparent 49.9%, rgb(255 255 255 / 1.5%) 50%, transparent 50.1%),
+    rgb(8 11 13 / 72%);
 }
 
 .settings-screen__panel {
@@ -261,7 +264,67 @@ const { t } = useI18n();
   accent-color: var(--color-signal);
 }
 
-@media (max-width: 32rem) {
+@media (orientation: landscape) and (max-height: 600px) {
+  .settings-screen {
+    padding:
+      max(0.5rem, env(safe-area-inset-top))
+      max(0.75rem, env(safe-area-inset-right))
+      max(0.5rem, env(safe-area-inset-bottom))
+      max(0.75rem, env(safe-area-inset-left));
+  }
+
+  .settings-screen__panel {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+  }
+
+  .settings-screen__heading,
+  .settings-screen__panel > :deep(.menu-button) {
+    grid-column: 1 / -1;
+  }
+
+  .settings-screen__heading {
+    padding-bottom: 0.45rem;
+  }
+
+  .settings-screen__title {
+    font-size: 1.55rem;
+  }
+
+  .settings-screen__group {
+    gap: 0.35rem;
+  }
+
+  .settings-screen__label {
+    font-size: 0.54rem;
+  }
+
+  .settings-screen__option {
+    min-height: 2.1rem;
+    padding: 0.3rem 0.4rem;
+    font-size: 0.52rem;
+    letter-spacing: 0.06em;
+  }
+
+  .settings-screen__options--stacked {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .settings-screen__range-row {
+    gap: 0.5rem;
+    font-size: 0.54rem;
+  }
+
+  .settings-screen__panel > :deep(.menu-button) {
+    min-height: 2.15rem;
+  }
+
+  .settings-screen__panel > :deep(.menu-button__label) {
+    font-size: 0.56rem;
+  }
+}
+
+@media (max-width: 32rem) and (orientation: portrait) {
   .settings-screen__options--stacked {
     grid-template-columns: 1fr;
   }

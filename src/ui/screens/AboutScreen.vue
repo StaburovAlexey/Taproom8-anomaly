@@ -95,6 +95,9 @@ const { t } = useI18n()
   min-height: 0;
   overflow: hidden;
   padding: 1.5rem;
+  background:
+    linear-gradient(90deg, transparent 49.9%, rgb(255 255 255 / 1.5%) 50%, transparent 50.1%),
+    rgb(8 11 13 / 72%);
 }
 
 .about-screen__panel {
@@ -207,7 +210,71 @@ const { t } = useI18n()
   font: inherit;
 }
 
-@media (max-width: 36rem) {
+@media (orientation: landscape) and (max-height: 600px) {
+  .about-screen {
+    padding:
+      max(0.5rem, env(safe-area-inset-top))
+      max(0.75rem, env(safe-area-inset-right))
+      max(0.5rem, env(safe-area-inset-bottom))
+      max(0.75rem, env(safe-area-inset-left));
+  }
+
+  .about-screen__panel {
+    width: min(100%, 48rem);
+    gap: 0.75rem;
+  }
+
+  .about-screen__title {
+    font-size: 2rem;
+  }
+
+  .about-screen__text {
+    font-size: 0.7rem;
+    line-height: 1.35;
+  }
+
+  .about-screen__section {
+    gap: 0.45rem;
+    padding-block: 0.65rem;
+  }
+
+  .about-screen__steps {
+    padding-left: 1.1rem;
+    gap: 0.25rem;
+    font-size: 0.62rem;
+    line-height: 1.35;
+  }
+
+  .about-screen__control-groups {
+    gap: 0.75rem;
+  }
+
+  .about-screen__control-group,
+  .about-screen__control-list {
+    gap: 0.3rem;
+  }
+
+  .about-screen__device,
+  .about-screen__control-row dt,
+  .about-screen__control-row dd {
+    font-size: 0.52rem;
+  }
+
+  .about-screen__control-row {
+    grid-template-columns: minmax(4.5rem, 0.8fr) minmax(0, 1fr);
+    gap: 0.4rem;
+  }
+
+  .about-screen__panel > :deep(.menu-button) {
+    min-height: 2.15rem;
+  }
+
+  .about-screen__panel > :deep(.menu-button__label) {
+    font-size: 0.56rem;
+  }
+}
+
+@media (max-width: 36rem) and (orientation: portrait) {
   .about-screen__control-groups {
     grid-template-columns: 1fr;
   }

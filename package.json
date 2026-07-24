@@ -12,6 +12,9 @@
     "test:run": "vitest run"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^6.7.2",
+    "@fortawesome/free-solid-svg-icons": "^6.7.2",
+    "@fortawesome/vue-fontawesome": "^3.3.3",
     "pinia": "3.0.4",
     "three": "0.185.1",
     "vue": "3.5.39",

@@ -52,7 +52,10 @@ describe('GameCoordinator', () => {
     coordinator.connect()
     emitLevelLoaded(bus)
 
-    bus.emit('session:start-requested', { mistakeProtection: false })
+    bus.emit('session:start-requested', {
+      mistakeChances: 0,
+      speedMultiplier: 1,
+    })
     const firstRound = started.at(-1)
     expect(firstRound?.level).toBe(0)
     expect(firstRound?.hasAnomaly).toBe(false)
@@ -85,7 +88,10 @@ describe('GameCoordinator', () => {
     coordinator.connect()
     emitLevelLoaded(bus)
 
-    bus.emit('session:start-requested', { mistakeProtection: true })
+    bus.emit('session:start-requested', {
+      mistakeChances: 1,
+      speedMultiplier: 1,
+    })
     emitAnswer(bus, false)
     bus.emit('round:advance-requested', undefined)
     const protectedLevel = started.at(-1)
@@ -116,6 +122,48 @@ describe('GameCoordinator', () => {
     generate.mockRestore()
   })
 
+  it('uses two mistake chances before resetting the session', () => {
+    const generate = vi.spyOn(GameSessionGenerator.prototype, 'generate')
+    const bus = new EventBus<GameEventMap>()
+    const coordinator = new GameCoordinator(bus)
+    const started: RoundStartedEvent[] = []
+    const results: GameEventMap['round:resolved'][] = []
+    bus.on('round:started', (round) => started.push(round))
+    bus.on('round:resolved', (result) => results.push(result))
+    coordinator.connect()
+    emitLevelLoaded(bus)
+
+    bus.emit('session:start-requested', {
+      mistakeChances: 2,
+      speedMultiplier: 1,
+    })
+    emitAnswer(bus, false)
+    bus.emit('round:advance-requested', undefined)
+
+    for (const remainingMistakeChances of [1, 0]) {
+      const round = started.at(-1)
+      emitAnswer(bus, !(round?.hasAnomaly ?? false))
+      expect(results.at(-1)).toMatchObject({
+        mistakeProtected: true,
+        remainingMistakeChances,
+        nextLevel: 1,
+      })
+      bus.emit('round:advance-requested', undefined)
+    }
+
+    const unprotectedRound = started.at(-1)
+    emitAnswer(bus, !(unprotectedRound?.hasAnomaly ?? false))
+    expect(results.at(-1)).toMatchObject({
+      mistakeProtected: false,
+      remainingMistakeChances: 0,
+      nextLevel: 0,
+    })
+    expect(generate).toHaveBeenCalledTimes(2)
+
+    coordinator.dispose()
+    generate.mockRestore()
+  })
+
   it('keeps the current session when returning from the menu', () => {
     const bus = new EventBus<GameEventMap>()
     const coordinator = new GameCoordinator(bus)
@@ -126,7 +174,10 @@ describe('GameCoordinator', () => {
     coordinator.connect()
     emitLevelLoaded(bus)
 
-    bus.emit('session:start-requested', { mistakeProtection: false })
+    bus.emit('session:start-requested', {
+      mistakeChances: 0,
+      speedMultiplier: 1,
+    })
     const firstRound = started.at(-1)
     bus.emit('game:pause-requested', undefined)
     bus.emit('game:run-requested', undefined)
@@ -154,7 +205,10 @@ describe('GameCoordinator', () => {
     coordinator.connect()
     emitLevelLoaded(bus)
 
-    bus.emit('session:start-requested', { mistakeProtection: false })
+    bus.emit('session:start-requested', {
+      mistakeChances: 0,
+      speedMultiplier: 1,
+    })
     for (let level = 0; level <= 8; level += 1) {
       const currentRound = started.at(-1)
       expect(currentRound).toMatchObject({ level })
@@ -180,7 +234,10 @@ describe('GameCoordinator', () => {
     coordinator.connect()
     emitLevelLoaded(bus)
 
-    bus.emit('session:start-requested', { mistakeProtection: false })
+    bus.emit('session:start-requested', {
+      mistakeChances: 0,
+      speedMultiplier: 1,
+    })
     bus.emit('dev:next-anomaly-selected', {
       kind: 'anomaly',
       anomalyId: 'flip_flop:armchair_easy:removed',
@@ -226,7 +283,10 @@ describe('GameCoordinator', () => {
       difficulty: 'Medium',
     }))
 
-    bus.emit('session:start-requested', { mistakeProtection: false })
+    bus.emit('session:start-requested', {
+      mistakeChances: 0,
+      speedMultiplier: 1,
+    })
     emitAnswer(bus, false)
     bus.emit('dev:next-anomaly-selected', { kind: 'none' })
     bus.emit('round:advance-requested', undefined)

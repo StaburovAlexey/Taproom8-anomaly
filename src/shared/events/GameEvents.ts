@@ -92,9 +92,15 @@ export interface RoundStartedEvent {
 export interface RoundResolvedEvent {
   readonly correct: boolean;
   readonly mistakeProtected: boolean;
+  readonly remainingMistakeChances: number;
   readonly selectedAnswer: boolean;
   readonly nextLevel: number;
   readonly completed: boolean;
+}
+
+export interface RunBoostConfiguration {
+  readonly mistakeChances: number;
+  readonly speedMultiplier: 1 | 1.5;
 }
 
 export interface GameEventMap {
@@ -112,6 +118,7 @@ export interface GameEventMap {
   'ui:volume-changed': { readonly master: number };
   'ui:mobile-move': Vector2Value;
   'ui:mobile-look': Vector2Value;
+  'ui:mobile-sprint': boolean;
   'ui:mobile-interact': void;
 
   'dev:anomaly-options-changed': {
@@ -122,7 +129,7 @@ export interface GameEventMap {
 
   'game:run-requested': void;
   'game:pause-requested': void;
-  'session:start-requested': { readonly mistakeProtection: boolean };
+  'session:start-requested': RunBoostConfiguration;
   'session:abandon-requested': void;
   'round:advance-requested': void;
   'gameplay:input-changed': { readonly enabled: boolean };
