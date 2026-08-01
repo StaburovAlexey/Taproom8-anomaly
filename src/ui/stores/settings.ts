@@ -12,7 +12,6 @@ import {
 
 interface SettingsState {
   language: Language
-  languageOverridden: boolean
   graphics: GraphicsQuality
   brightness: number
   volume: VolumeSettings
@@ -32,14 +31,12 @@ export const useSettingsStore = defineStore('settings', {
   actions: {
     setLanguage(language: Language): void {
       this.language = language
-      this.languageOverridden = true
       this.persist()
     },
     applyPlatformLanguage(language: string | null): void {
-      if (this.languageOverridden || language === null) {
-        return
-      }
-      this.language = language.toLowerCase().startsWith('ru') ? 'ru' : 'en'
+      this.language = language?.toLowerCase().startsWith('ru') === false
+        ? 'en'
+        : 'ru'
       this.persist()
     },
     setGraphics(graphics: GraphicsQuality): void {
@@ -61,7 +58,6 @@ export const useSettingsStore = defineStore('settings', {
     persist(): void {
       writeSettings({
         language: this.language,
-        languageOverridden: this.languageOverridden,
         graphics: this.graphics,
         brightness: this.brightness,
         volume: { ...this.volume },

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import type {
   DevAnomalyOption,
@@ -17,6 +18,7 @@ const emit = defineEmits<{
 
 const RANDOM_VALUE = '__random__'
 const NONE_VALUE = '__none__'
+const { t } = useI18n()
 
 const selectedValue = computed(() => {
   if (props.selection.kind === 'anomaly') {
@@ -47,14 +49,14 @@ function select(event: Event): void {
 
 <template>
   <label class="dev-anomaly">
-    <span class="dev-anomaly__label">Следующая аномалия</span>
+    <span class="dev-anomaly__label">{{ t('dev.nextAnomaly') }}</span>
     <select
       class="dev-anomaly__select"
       :value="selectedValue"
       @change="select"
     >
-      <option :value="RANDOM_VALUE">Случайная</option>
-      <option :value="NONE_VALUE">Без аномалии</option>
+      <option :value="RANDOM_VALUE">{{ t('dev.randomAnomaly') }}</option>
+      <option :value="NONE_VALUE">{{ t('dev.noAnomaly') }}</option>
       <optgroup
         v-for="(items, difficulty) in groupedOptions"
         :key="difficulty"

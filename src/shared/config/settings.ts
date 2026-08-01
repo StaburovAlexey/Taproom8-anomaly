@@ -3,7 +3,6 @@ export type GraphicsQuality = 'normal' | 'potato'
 
 export interface PersistedSettings {
   language: Language
-  languageOverridden: boolean
   graphics: GraphicsQuality
   brightness: number
   volume: VolumeSettings
@@ -30,7 +29,6 @@ export const DEFAULT_VOLUME: VolumeSettings = {
 
 export const DEFAULT_SETTINGS: PersistedSettings = {
   language: 'ru',
-  languageOverridden: false,
   graphics: 'normal',
   brightness: 1,
   volume: DEFAULT_VOLUME,
@@ -110,8 +108,6 @@ export function readSettings(): PersistedSettings {
     const record = candidate as Record<string, unknown>
     return {
       language: isLanguage(record.language) ? record.language : DEFAULT_SETTINGS.language,
-      languageOverridden: record.settingsVersion === SETTINGS_VERSION
-        && record.languageOverridden === true,
       graphics: isGraphicsQuality(record.graphics)
         ? record.graphics
         : DEFAULT_SETTINGS.graphics,

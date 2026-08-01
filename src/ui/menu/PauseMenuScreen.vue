@@ -47,7 +47,10 @@ const isDev = import.meta.env.DEV
         </span>
         <span v-if="speedMultiplier === 1.5">{{ t('boosts.speedActive') }}</span>
       </div>
-      <nav class="pause-menu__actions" aria-label="Pause menu">
+      <nav
+        class="pause-menu__actions"
+        :aria-label="t('accessibility.pauseMenu')"
+      >
         <MenuButton
           :label="t('menu.continue')"
           variant="primary"

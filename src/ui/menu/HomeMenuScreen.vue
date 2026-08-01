@@ -16,7 +16,10 @@ const { t } = useI18n()
 <template>
   <section class="screen home-menu">
     <BrandMark />
-    <nav class="home-menu__actions" aria-label="Main menu">
+    <nav
+      class="home-menu__actions"
+      :aria-label="t('accessibility.mainMenu')"
+    >
       <MenuButton
         :label="t('menu.start')"
         variant="primary"

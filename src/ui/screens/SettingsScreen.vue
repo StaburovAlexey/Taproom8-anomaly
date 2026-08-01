@@ -94,7 +94,7 @@ const { t } = useI18n();
             type="button"
             @click="$emit('update:language', 'ru')"
           >
-            Русский
+            {{ t("settings.russian") }}
           </button>
           <button
             class="settings-screen__option"
@@ -102,7 +102,7 @@ const { t } = useI18n();
             type="button"
             @click="$emit('update:language', 'en')"
           >
-            English
+            {{ t("settings.english") }}
           </button>
         </div>
       </div>

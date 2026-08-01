@@ -1,5 +1,4 @@
 import { onScopeDispose, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
 
 import { AnalyticsManager } from '@/shared/analytics/AnalyticsManager'
 import type { GraphicsQuality, Language } from '@/shared/config/settings'
@@ -8,6 +7,7 @@ import {
   type DevNextAnomalySelection,
   type Vector2Value,
 } from '@/shared/events'
+import { setI18nLanguage } from '@/shared/i18n'
 import { useSettingsStore } from '@/ui/stores/settings'
 import {
   yandexFullscreenAdvertising,
@@ -16,11 +16,14 @@ import {
   type RewardedAdvertising,
 } from '@/platform/yandex'
 
-import { FullscreenAdSchedule } from './FullscreenAdSchedule'
 import { LoadingProgressAggregator } from './LoadingProgressAggregator'
 import { useUiFlowStore } from './uiFlow.store'
 import { useBoostsStore, type BoostProductId } from '@/ui/boosts/boosts.store'
 import type { CinematicTransitionIntent } from './uiFlow.types'
+import {
+  showHomeInterstitial,
+  type HomeInterstitialPlacement,
+} from './showHomeInterstitial'
 
 const PROTECTION_NOTICE_DURATION_MS = 3_000
 
@@ -36,15 +39,13 @@ export function useUiFlowController(options: UiFlowControllerOptions = {}) {
   const advertising = options.advertising ?? yandexFullscreenAdvertising
   const rewardedAdvertising = options.rewardedAdvertising
     ?? yandexRewardedAdvertising
-  const adSchedule = new FullscreenAdSchedule()
-  const { locale } = useI18n({ useScope: 'global' })
   const cleanups: Array<() => void> = []
   const loadingProgress = new LoadingProgressAggregator()
   let engineReady = false
   let audioReady = false
   let loadingFinished = false
   let readyReported = false
-  let coveredTransitionRunning = false
+  let homeInterstitialRunning = false
   let pendingNoticeKey: string | null = null
   let protectionNoticeTimer: number | null = null
   let disposed = false
@@ -68,8 +69,7 @@ export function useUiFlowController(options: UiFlowControllerOptions = {}) {
   watch(
     () => settings.language,
     (language) => {
-      locale.value = language
-      document.documentElement.lang = language
+      setI18nLanguage(language)
     },
     { immediate: true },
   )
@@ -135,7 +135,6 @@ export function useUiFlowController(options: UiFlowControllerOptions = {}) {
       'round:resolved',
       ({
         completed,
-        correct,
         mistakeProtected,
         remainingMistakeChances,
       }) => {
@@ -143,7 +142,6 @@ export function useUiFlowController(options: UiFlowControllerOptions = {}) {
         pendingNoticeKey = mistakeProtected
           ? 'game.mistakeProtected'
           : null
-        adSchedule.recordRound(flow.currentLevel, correct)
         if (!flow.beginTransition(completed ? 'show-completed' : 'advance-round')) {
           return
         }
@@ -222,7 +220,6 @@ export function useUiFlowController(options: UiFlowControllerOptions = {}) {
       return
     }
     pendingNoticeKey = null
-    adSchedule.reset()
     setGameplayInput(false)
     gameEventBus.emit('game:run-requested', undefined)
   }
@@ -287,57 +284,41 @@ export function useUiFlowController(options: UiFlowControllerOptions = {}) {
     gameEventBus.emit('game:pause-requested', undefined)
   }
 
-  function requestAbandonSession(): void {
-    if (!flow.beginTransition('abandon-session')) {
+  async function returnHomeWithInterstitial(
+    placement: HomeInterstitialPlacement,
+  ): Promise<void> {
+    if (homeInterstitialRunning || flow.transitionRunning) {
       return
     }
+    homeInterstitialRunning = true
     pendingNoticeKey = null
-    adSchedule.recordPauseMenu()
+    const interstitialRequest = showHomeInterstitial(advertising, placement)
     setGameplayInput(false)
+    try {
+      await interstitialRequest
+    } finally {
+      homeInterstitialRunning = false
+    }
+    if (disposed) {
+      return
+    }
+    flow.beginTransition('abandon-session')
+  }
+
+  function requestAbandonSession(): void {
+    void returnHomeWithInterstitial('pause-menu')
   }
 
   function returnHomeFromCompleted(): void {
-    if (!flow.beginTransition('abandon-session')) {
-      return
-    }
-    pendingNoticeKey = null
-    adSchedule.recordCompletedMenu()
-    setGameplayInput(false)
+    void returnHomeWithInterstitial('completed-menu')
   }
 
   function handleTransitionCovered(): void {
-    if (coveredTransitionRunning || flow.transitionPhase !== 'covering') {
+    if (flow.transitionPhase !== 'covering') {
       return
     }
     flow.markTransitionCovered()
-    const intent = flow.transitionIntent
-    const placement = adSchedule.take(intent)
-    if (placement === null) {
-      continueCoveredTransition(intent)
-      return
-    }
-
-    coveredTransitionRunning = true
-    void advertising.show({
-      resumeGameAfterClose: intent === 'advance-round',
-    }).catch((cause: unknown) => {
-      gameEventBus.emit('engine:error', {
-        error: cause instanceof Error
-          ? cause
-          : new Error('Showing fullscreen advertising.', { cause }),
-        context: `Showing fullscreen advertising at ${placement}.`,
-        recoverable: true,
-      })
-    }).finally(() => {
-      coveredTransitionRunning = false
-      if (
-        !disposed
-        && flow.transitionPhase === 'covered'
-        && flow.transitionIntent === intent
-      ) {
-        continueCoveredTransition(intent)
-      }
-    })
+    continueCoveredTransition(flow.transitionIntent)
   }
 
   function continueCoveredTransition(

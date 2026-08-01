@@ -34,7 +34,7 @@ const interactionLabel = computed(() =>
         <div v-if="isDev" class="hud__level">
           <strong class="hud__value">{{ levelLabel }}</strong>
           <span v-if="anomalyTargetObjectId" class="hud__anomaly">
-            Объект аномалии: {{ anomalyTargetObjectId }}
+            {{ t('dev.anomalyObject') }}: {{ anomalyTargetObjectId }}
           </span>
         </div>
         <MistakeChanceIndicator
@@ -42,7 +42,12 @@ const interactionLabel = computed(() =>
           :capacity="mistakeChanceCapacity"
         />
       </div>
-      <button class="hud__menu" type="button" aria-label="Menu" @click="$emit('menu')">
+      <button
+        class="hud__menu"
+        type="button"
+        :aria-label="t('accessibility.gameMenu')"
+        @click="$emit('menu')"
+      >
         <span></span><span></span>
       </button>
     </div>

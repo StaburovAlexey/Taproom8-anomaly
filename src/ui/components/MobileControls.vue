@@ -2,6 +2,7 @@
 import { onBeforeUnmount, onMounted, reactive, shallowRef } from 'vue'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faPersonRunning } from '@fortawesome/free-solid-svg-icons'
+import { useI18n } from 'vue-i18n'
 
 export interface ControlAxis {
   x: number
@@ -27,6 +28,8 @@ const emit = defineEmits<{
   sprint: [sprinting: boolean]
   interact: []
 }>()
+
+const { t } = useI18n()
 
 const movement = reactive<StickState>({ pointerId: null, x: 0, y: 0 })
 const look = reactive<StickState>({ pointerId: null, x: 0, y: 0 })
@@ -175,11 +178,14 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="mobile-controls" aria-label="Mobile game controls">
+  <div
+    class="mobile-controls"
+    :aria-label="t('accessibility.mobileControls')"
+  >
     <div
       class="mobile-controls__zone"
       role="application"
-      aria-label="Movement joystick"
+      :aria-label="t('accessibility.movementJoystick')"
       @pointerdown="startStick($event, movement, 'move')"
       @pointermove="moveStick($event, movement, 'move')"
       @pointerup="finishStick($event, movement, 'move')"
@@ -205,7 +211,9 @@ onBeforeUnmount(() => {
       class="mobile-controls__sprint"
       :class="{ 'mobile-controls__sprint--active': sprinting }"
       type="button"
-      :aria-label="sprinting ? 'Disable sprint' : 'Enable sprint'"
+      :aria-label="t(sprinting
+        ? 'accessibility.disableSprint'
+        : 'accessibility.enableSprint')"
       :aria-pressed="sprinting"
       @click="toggleSprint"
     >
@@ -215,7 +223,7 @@ onBeforeUnmount(() => {
     <div
       class="mobile-controls__zone"
       role="application"
-      aria-label="Camera joystick"
+      :aria-label="t('accessibility.cameraJoystick')"
       @pointerdown="startStick($event, look, 'look')"
       @pointermove="moveStick($event, look, 'look')"
       @pointerup="finishStick($event, look, 'look')"

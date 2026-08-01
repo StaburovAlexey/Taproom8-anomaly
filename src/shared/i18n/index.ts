@@ -2,8 +2,11 @@ import { createI18n } from 'vue-i18n'
 
 import { readSettings } from '@/shared/config/settings'
 
-const messages = {
+export const messages = {
   ru: {
+    metadata: {
+      description: 'TAPROOM 8 — игра на внимательность о поиске аномалий в меняющейся комнате.',
+    },
     brand: {
       title: 'TAPROOM',
       accent: '8',
@@ -15,6 +18,16 @@ const messages = {
       open: 'Открыть',
       enabled: 'Включено',
       disabled: 'Выключено',
+    },
+    accessibility: {
+      mainMenu: 'Главное меню',
+      pauseMenu: 'Меню паузы',
+      gameMenu: 'Открыть меню',
+      mobileControls: 'Мобильное управление игрой',
+      movementJoystick: 'Стик движения',
+      cameraJoystick: 'Стик камеры',
+      enableSprint: 'Включить бег',
+      disableSprint: 'Выключить бег',
     },
     loading: {
       status: 'Загрузка...',
@@ -40,6 +53,8 @@ const messages = {
       fullscreen: 'Полный экран',
       brightness: 'Яркость',
       volume: 'Громкость',
+      russian: 'Русский',
+      english: 'Английский',
       normal: 'Обычная',
       potato: 'Для слабых устройств',
     },
@@ -122,8 +137,17 @@ const messages = {
       engine: 'Не удалось запустить 3D-сцену.',
       retry: 'Повторить',
     },
+    dev: {
+      anomalyObject: 'Объект аномалии',
+      nextAnomaly: 'Следующая аномалия',
+      randomAnomaly: 'Случайная',
+      noAnomaly: 'Без аномалии',
+    },
   },
   en: {
+    metadata: {
+      description: 'TAPROOM 8 is an observation game about finding anomalies in a changing room.',
+    },
     brand: {
       title: 'TAPROOM',
       accent: '8',
@@ -135,6 +159,16 @@ const messages = {
       open: 'Open',
       enabled: 'Enabled',
       disabled: 'Disabled',
+    },
+    accessibility: {
+      mainMenu: 'Main menu',
+      pauseMenu: 'Pause menu',
+      gameMenu: 'Open menu',
+      mobileControls: 'Mobile game controls',
+      movementJoystick: 'Movement joystick',
+      cameraJoystick: 'Camera joystick',
+      enableSprint: 'Enable sprint',
+      disableSprint: 'Disable sprint',
     },
     loading: {
       status: 'Loading...',
@@ -160,6 +194,8 @@ const messages = {
       fullscreen: 'Fullscreen',
       brightness: 'Brightness',
       volume: 'Volume',
+      russian: 'Russian',
+      english: 'English',
       normal: 'Normal',
       potato: 'For low-end devices',
     },
@@ -242,6 +278,12 @@ const messages = {
       engine: 'The 3D scene could not be started.',
       retry: 'Retry',
     },
+    dev: {
+      anomalyObject: 'Anomaly object',
+      nextAnomaly: 'Next anomaly',
+      randomAnomaly: 'Random',
+      noAnomaly: 'No anomaly',
+    },
   },
 } as const
 
@@ -255,4 +297,8 @@ export const i18n = createI18n({
 export function setI18nLanguage(language: 'ru' | 'en'): void {
   i18n.global.locale.value = language
   document.documentElement.lang = language
+  document.querySelector('meta[name="description"]')?.setAttribute(
+    'content',
+    messages[language].metadata.description,
+  )
 }

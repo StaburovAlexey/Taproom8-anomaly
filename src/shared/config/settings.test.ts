@@ -47,7 +47,6 @@ describe('settings persistence', () => {
   it('keeps an explicitly saved 50% value after migration', () => {
     writeSettings({
       language: 'ru',
-      languageOverridden: false,
       graphics: 'normal',
       brightness: 0.5,
       volume: { master: 1, music: 1, sfx: 1 },
@@ -69,7 +68,6 @@ describe('settings persistence', () => {
   it('saves and restores volume settings', () => {
     writeSettings({
       language: 'ru',
-      languageOverridden: false,
       graphics: 'normal',
       brightness: 1,
       volume: { master: 0.35, music: 0.6, sfx: 0.8 },
