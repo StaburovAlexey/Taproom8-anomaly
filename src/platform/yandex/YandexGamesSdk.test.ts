@@ -97,6 +97,14 @@ function createFixture(language = 'en') {
 }
 
 describe('YandexGamesSdk', () => {
+  it('starts on GitHub Pages without requesting the Yandex SDK', async () => {
+    const sdk = new YandexGamesSdk({
+      window: { location: { hostname: 'staburovalexey.github.io' } },
+    })
+    await expect(sdk.initialize()).resolves.toBeUndefined()
+    expect(sdk.available).toBe(false)
+  })
+
   it('initializes once and exposes the platform language', async () => {
     const { sdk, init } = createFixture('ru')
 

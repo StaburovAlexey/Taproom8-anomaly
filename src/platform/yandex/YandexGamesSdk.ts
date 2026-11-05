@@ -386,7 +386,8 @@ export class YandexGamesSdk {
     }
 
     if (browserWindow.YaGames === undefined) {
-      if (isLocalHostname(browserWindow.location.hostname)) {
+      if (isLocalHostname(browserWindow.location.hostname)
+        || browserWindow.location.hostname === 'staburovalexey.github.io') {
         return
       }
       await this.loadSdkScript()
